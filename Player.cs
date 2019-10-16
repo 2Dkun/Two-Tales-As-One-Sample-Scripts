@@ -20,7 +20,7 @@ public class Player : MonoBehaviour {
 			- What you have so far:
 				- Enemy will treat damage of -1 as parry kill
 				- Skills are defined for each char. You must figure out how to organize them
-				- Figure out how to let Duke use his first skill and give it an mp cost.
+				- Figure out how to let Shield use his first skill and give it an mp cost. 
 	 */
 
 	[System.Serializable]
