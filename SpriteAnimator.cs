@@ -46,8 +46,9 @@ public class SpriteAnimator {
         }
         // Else, attack is done being displayed
         else {
-            ResetAnim();
+            //ResetAnim();
             if (this.isLoop) {
+                ResetAnim();
                 return this.anim[index % this.anim.Length];
             }
             return this.anim[anim.Length - 1];

@@ -38,7 +38,7 @@ public class Player : MonoBehaviour {
 	}
 
 	// Base character data
-    public int maxHP = 100;    // just a default value
+    public int maxHP = 100, maxMP = 100;    // just a default value
 	public PlayerClass sword, shield;
  
 	// Character states
@@ -50,7 +50,7 @@ public class Player : MonoBehaviour {
 	public GameObject player;
 	public HitBox hurtBox;
 	private PlayerClass curClass;
-	private int curHP;
+	private int curHP, curMP;
 	private float xVel, yVel;
 	private float flipScale;
 	private Attack curAttack;
@@ -65,6 +65,7 @@ public class Player : MonoBehaviour {
 		timer = new FrameCounter();
 
 		curHP = this.maxHP;
+		curMP = this.maxMP;
 		curClass = this.sword;
 		curState = States.Grounded;
 		prevState = States.Grounded;
@@ -78,6 +79,12 @@ public class Player : MonoBehaviour {
 
 	// Allow the user to have full control over the player
 	public void ControlPlayer(){
+		// See if player made any skill inputs
+		if(curClass == this.shield){
+			if(Input.GetKey(KeyCode.K))		ParryStrike();
+		}
+
+		// Run through player state machine
 		switch(curState){
 			case States.Grounded:	MoveGrounded(); break;
 			case States.Airborne: 	MoveAirborne(); break;
@@ -91,6 +98,8 @@ public class Player : MonoBehaviour {
 
 	// Perform current attack
 	private bool Attack() {
+
+		curState = States.Parry;
 		// Play attack animation
 		player.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
 		
@@ -136,7 +145,7 @@ public class Player : MonoBehaviour {
 
 		}
 		else if(curState == States.Parry) {
-			curState = States.Attack;
+	//		curState = States.Attack;
 		}
 
 			
@@ -358,9 +367,7 @@ public class Player : MonoBehaviour {
 	}
 
 
-	/* 
-		Other methods that can be called by other scripts
-	*/ 
+	/* --- Other methods that can be called by other scripts --- */ 
 	
 	// Apply hurt process if player got hit by an attack
 	public void Attacked(int damage){
@@ -375,4 +382,21 @@ public class Player : MonoBehaviour {
 		}
 	}
 	
+
+	/* -------------------------------- SHIELD SKILLS -------------------------------- */
+	private void ParryStrike(){
+		// Skill can only be done during a parry
+		if(curState == States.Parry && shield.skills[0].mpCost <= curMP){
+			// Reset previous attack
+			curAttack.anim.ResetAnim();
+
+			// Set current attack as Skill1
+			curAttack = shield.skills[0];
+			curMP -= shield.skills[0].mpCost;
+
+			// Apply the changes for swapping character
+			if(curClass == sword)	curClass = shield;
+			else					curClass = sword;
+		}
+	}
 }
