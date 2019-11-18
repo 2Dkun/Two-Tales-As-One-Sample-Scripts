@@ -15,12 +15,13 @@ public class Player : MonoBehaviour {
 		- Improve on enemy AI
 		- Work on animations
 
-		- IMPLEMENT AN MP SYSTEM FOR SKILLS.
 		- FIGURE OUT HOW YOU'RE GONNA ALLOW SKILLS TO BE USED
 			- What you have so far:
 				- Enemy will treat damage of -1 as parry kill
 				- Skills are defined for each char. You must figure out how to organize them
 				- Figure out how to let Shield use his first skill and give it an mp cost. 
+		- Implement a block mechanic for shield
+		- Make sword attacks a bit slower
 	 */
 
 	[System.Serializable]
@@ -55,6 +56,9 @@ public class Player : MonoBehaviour {
 	private float flipScale;
 	private Attack curAttack;
 	private FrameCounter timer;
+
+	// Player Objects
+	public GameObject playerHUD;
 
 	// TEMP VARS
 	public float minHeight; // detect ground better in future
@@ -321,6 +325,8 @@ public class Player : MonoBehaviour {
 			// Apply the changes for swapping character
 			if(curClass == sword)	curClass = shield;
 			else					curClass = sword;
+
+			playerHUD.GetComponent<HUDManager>().SwapChar();
 
 			if(prevState == States.Airborne) {
 				if(xVel > 0)		this.xVel = curClass.airSpd;
