@@ -5,6 +5,9 @@ using UnityEngine;
 public class Player : MonoBehaviour {
  
 	/*
+		CURRUNT TASK:
+		Change display base on current hp, mp, and swap
+
 		TO DO LIST:
 		- Setup up enemy scripts using the child thing
 			- Think about how it can work when you need to call its method
@@ -79,6 +82,10 @@ public class Player : MonoBehaviour {
 	// TESTING PURPOSES REMOVE ME LATER
 	public void Update(){
 		ControlPlayer();
+		if(Input.GetKeyDown(KeyCode.K)){
+			curHP -= 1;
+			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curHP/maxHP);
+		}
 	}
 
 	// Allow the user to have full control over the player
@@ -149,7 +156,7 @@ public class Player : MonoBehaviour {
 
 		}
 		else if(curState == States.Parry) {
-	//		curState = States.Attack;
+			// curState = States.Attack;
 		}
 
 			
@@ -339,8 +346,10 @@ public class Player : MonoBehaviour {
 		// Otherwise continue to fade the character
 		else{
 			float i = player.GetComponent<SpriteRenderer>().color.r - Time.deltaTime * 1.5f;
-            if(i < 0.25f)	i = 0.25f;
-                player.GetComponent<SpriteRenderer>().color = new Color(i,i,i);
+            if(i < 0.25f) {
+				i = 0.25f;
+			}
+            player.GetComponent<SpriteRenderer>().color = new Color(i,i,i);
 		}
 	}
 
