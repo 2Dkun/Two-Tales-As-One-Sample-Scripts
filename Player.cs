@@ -36,7 +36,7 @@ public class Player : MonoBehaviour {
 	public class PlayerClass {
 		public Anims charAnims;
 		public float walkSpd, dashSpd, airSpd, jumpHeight, gravity;
-		public float airAccel;
+		public float airAccel, swapRate;
 		public Attack atk, cAtk;
 		public Attack[] skills;
 	}
@@ -55,6 +55,7 @@ public class Player : MonoBehaviour {
 	public HitBox hurtBox;
 	private PlayerClass curClass;
 	private int curHP, curMP;
+	private float curSP = 100;
 	private float xVel, yVel;
 	private float flipScale;
 	private Attack curAttack;
@@ -82,9 +83,21 @@ public class Player : MonoBehaviour {
 	// TESTING PURPOSES REMOVE ME LATER
 	public void Update(){
 		ControlPlayer();
+
+		/*
 		if(Input.GetKeyDown(KeyCode.K)){
-			curHP -= 1;
-			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curHP/maxHP);
+			curHP -= 10;
+			playerHUD.GetComponent<HUDManager>().UpdateHP((float)curHP/maxHP);
+		}
+		*/
+
+		// Update SWAP meter
+		if(curSP < 100) {
+			curSP += Time.deltaTime * curClass.swapRate;
+			if(curSP > 100) {
+				curSP = 100;
+			}
+			playerHUD.GetComponent<HUDManager>().UpdateSP(curSP/100);		
 		}
 	}
 
@@ -127,28 +140,34 @@ public class Player : MonoBehaviour {
 		else if(timer.curFrame() >= curAttack.startup && timer.curFrame() <= curAttack.getLastFrame()){ 
 			// Check if attack connected with any enemy
 			for(int i = 0; i < foes.Length; i++){
-				HitBox foeHurt = new HitBox();
-				foes[i].SendMessage("GetHurtBox", foeHurt);
-				bool isHit = IsHitTarget(curAttack.hitBox, player, foeHurt, foes[i]);
+				// Check if enemy exists
+				if(foes[i] != null) {
+					HitBox foeHurt = new HitBox();
+					foes[i].SendMessage("GetHurtBox", foeHurt);
+					bool isHit = IsHitTarget(curAttack.hitBox, player, foeHurt, foes[i]);
 
-				// Tell the enemy that it has been attacked
-				if(isHit){
-					foes[i].SendMessage("Attacked", curAttack.power);
+					// Tell the enemy that it has been attacked
+					if(isHit){
+						foes[i].SendMessage("Attacked", curAttack.power);
+					}
 				}
 			}
 				
 			// See if an attack was blocked if the player's attack is a parry
 			if(curAttack.isParry){
 				for(int i = 0; i < foes.Length; i++){
-					HitBox foeHit = new HitBox(); 
-					foes[i].SendMessage("GetCurAtk", foeHit);
-					if(!foeHit.IsEqual(new HitBox())){
-						bool isParry = IsHitTarget(curAttack.hitBox, player, foeHit, foes[i]);
+					// Check if enemy exists
+					if(foes[i] != null) {
+						HitBox foeHit = new HitBox(); 
+						foes[i].SendMessage("GetCurAtk", foeHit);
+						if(!foeHit.IsEqual(new HitBox())){
+							bool isParry = IsHitTarget(curAttack.hitBox, player, foeHit, foes[i]);
 
-						if(isParry){
-							curState = States.Parry;
-							foes[i].SendMessage("Parried");
-							Debug.Log("yote");
+							if(isParry){
+								curState = States.Parry;
+								foes[i].SendMessage("Parried");
+								Debug.Log("yote");
+							}
 						}
 					}
 				}
@@ -188,10 +207,15 @@ public class Player : MonoBehaviour {
 	// Handles the player's air movement
 	private void MoveAirborne() {
 		// SWAP
-		if (Input.GetKeyDown(KeyCode.W)){
-			ChangeState(States.Swap);
-			player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
-			timer.resetWait();
+		if (Input.GetKeyDown(KeyCode.W)) {
+			if(curSP >= 100) {
+				ChangeState(States.Swap);
+				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
+				timer.resetWait();
+			}
+			else {
+				// IMPLEMENT STRUGGLE ANIMATION LATER
+			}
 		}
 
 		// MOVE LEFT
@@ -228,10 +252,15 @@ public class Player : MonoBehaviour {
 	private void MoveGrounded() {
 
 		// SWAP
-		if (Input.GetKeyDown(KeyCode.W)){
-			ChangeState(States.Swap);
-			player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
-			timer.resetWait();
+		if (Input.GetKeyDown(KeyCode.W)) {
+			if(curSP >= 100) {
+				ChangeState(States.Swap);
+				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
+				timer.resetWait();
+			}
+			else {
+				// IMPLEMENT STRUGGLE ANIMATION LATER
+			}
 		}
 
 		// ATTACK
@@ -332,8 +361,9 @@ public class Player : MonoBehaviour {
 			// Apply the changes for swapping character
 			if(curClass == sword)	curClass = shield;
 			else					curClass = sword;
+			curSP = 0;
 
-			playerHUD.GetComponent<HUDManager>().SwapChar();
+			playerHUD.GetComponent<HUDManager>().SwapChar();		
 
 			if(prevState == States.Airborne) {
 				if(xVel > 0)		this.xVel = curClass.airSpd;
@@ -393,6 +423,7 @@ public class Player : MonoBehaviour {
 			if(curState == States.Attack || curState == States.Swap)
 				curState = prevState;
 			ChangeState(States.Hurt);
+			playerHUD.GetComponent<HUDManager>().UpdateHP((float)curHP/maxHP);
 			timer.resetWait();
 		}
 	}
@@ -404,14 +435,19 @@ public class Player : MonoBehaviour {
 		if(curState == States.Parry && shield.skills[0].mpCost <= curMP){
 			// Reset previous attack
 			curAttack.anim.ResetAnim();
+			timer.resetWait();
 
 			// Set current attack as Skill1
 			curAttack = shield.skills[0];
 			curMP -= shield.skills[0].mpCost;
+			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
 
 			// Apply the changes for swapping character
 			if(curClass == sword)	curClass = shield;
 			else					curClass = sword;
+			curSP = 0;
+
+			playerHUD.GetComponent<HUDManager>().SwapChar();	
 		}
 	}
 }
