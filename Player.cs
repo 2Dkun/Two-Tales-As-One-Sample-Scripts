@@ -103,7 +103,7 @@ public class Player : MonoBehaviour {
 
 	// Allow the user to have full control over the player
 	public void ControlPlayer(){
-		Debug.Log(curState);
+	//	Debug.Log(curState);
 		// See if player made any skill inputs
 		if(curClass == this.shield){
 			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
@@ -228,14 +228,14 @@ public class Player : MonoBehaviour {
 			this.xVel += -curClass.airAccel * Time.deltaTime * 30;
 			if(xVel < -curClass.airSpd)
 				xVel = -curClass.airSpd;
-	//		player.transform.localScale = new Vector2(-flipScale, flipScale);
+			//player.transform.localScale = new Vector2(-flipScale, flipScale);
 		}
 		// MOVE RIGHT
 		else if(Input.GetKey(KeyCode.D)) {
 			this.xVel += curClass.airAccel * Time.deltaTime * 30;
 			if(xVel > curClass.airSpd)
 				xVel = curClass.airSpd;
-	//		player.transform.localScale = new Vector2(flipScale, flipScale);
+			//player.transform.localScale = new Vector2(flipScale, flipScale);
 		}
 
 		// ATTACK
@@ -421,13 +421,14 @@ public class Player : MonoBehaviour {
 	
 	// Apply hurt process if player got hit by an attack
 	public void Attacked(int damage){
-		if(curState != States.Hurt && curState != States.Parry && curState != States.Block){
+		if(curState != States.Parry && curState != States.Block){
 			curHP -= damage;
 			if(curHP < 0)	curHP = 0;
 
 			if(curState == States.Attack || curState == States.Swap)
 				curState = prevState;
-			ChangeState(States.Hurt);
+			if(curState != States.Hurt)
+				ChangeState(States.Hurt);
 			playerHUD.GetComponent<HUDManager>().UpdateHP((float)curHP/maxHP);
 			timer.resetWait();
 		}

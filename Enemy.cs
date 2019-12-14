@@ -42,6 +42,7 @@ public abstract class Enemy: MonoBehaviour {
 	public bool isHurt				{ get; set; }
 	private HitBox fov = new HitBox();
 	private HitBox activeHit;
+	private bool hitPlayer;
 
 	// Temp data?
 	public GameObject player;
@@ -60,6 +61,7 @@ public abstract class Enemy: MonoBehaviour {
 
 		// Set htibox for detection
 		fov = new HitBox(foe.detectRad, 1, -foe.detectRad, -1);
+		hitPlayer = false;
 	}
 
 	/* 
@@ -156,11 +158,15 @@ public abstract class Enemy: MonoBehaviour {
 			ChangeState(States.Grounded);
 			cooldown = a.cooldown;
 			a.anim.ResetAnim();
+			hitPlayer = false;
 		}
 		// Otherwise check if the move connected during its active frames
-		else if(timer.curFrame() >= a.startup && timer.curFrame() <= a.getLastFrame()){
+		else if(timer.curFrame() >= a.startup && timer.curFrame() <= a.getLastFrame() && !hitPlayer){
 			bool isHit = IsHitTarget(a.hitBox, enemy, player.GetComponent<Player>().hurtBox, player);
-			if(isHit)	player.SendMessage("Attacked", a.power);
+			if(isHit){
+				player.SendMessage("Attacked", a.power);
+				hitPlayer = true;
+			}
 			activeHit = a.hitBox;
 		}
 		else if(timer.curFrame() == 0 || timer.curFrame() == a.getLastFrame()+1){
