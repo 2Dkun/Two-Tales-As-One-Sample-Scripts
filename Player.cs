@@ -103,10 +103,14 @@ public class Player : MonoBehaviour {
 
 	// Allow the user to have full control over the player
 	public void ControlPlayer(){
+		Debug.Log(curState);
 		// See if player made any skill inputs
 		if(curClass == this.shield){
 			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
 			else if(Input.GetKey(KeyCode.K))		ParryStrike(shield.skills[1]);
+		}
+		else{
+			if(Input.GetKey(KeyCode.J))				AnotherSwing(sword.skills[0], sword.skills[1]);
 		}
 
 		// Run through player state machine
@@ -125,7 +129,6 @@ public class Player : MonoBehaviour {
 	// Perform current attack
 	private bool Attack() {
 
-		curState = States.Parry;
 		// Play attack animation
 		player.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
 		
@@ -430,6 +433,31 @@ public class Player : MonoBehaviour {
 		}
 	}
 	
+
+	/* -------------------------------- SWORD SKILLS -------------------------------- */
+	// A skill that allows for multiple swings from Shida's basic attack
+	private void AnotherSwing(Attack atk2, Attack atk3) {
+		if(curAttack == sword.atk){
+			if(timer.curFrame() >= curAttack.getLastFrame() && timer.curFrame() < curAttack.endlag){ 
+				// Reset previous attack
+				curAttack.anim.ResetAnim();
+				timer.resetWait();
+
+				// Set new attack to swing 2
+				curAttack = atk2;
+			}
+		}
+		else if(curAttack == atk2){
+			if(timer.curFrame() >= atk2.getLastFrame() && timer.curFrame() < atk2.endlag){ 
+				// Reset previous attack
+				curAttack.anim.ResetAnim();
+				timer.resetWait();
+
+				// Set new attack to swing 2
+				curAttack = atk3;
+			}
+		}
+	}
 
 	/* -------------------------------- SHIELD SKILLS -------------------------------- */
 	// A skill that prevents the player from getting hit

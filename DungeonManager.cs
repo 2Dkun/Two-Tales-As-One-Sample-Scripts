@@ -10,13 +10,17 @@ public class DungeonManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		enemies[0].SendMessage("Start");
+		for(int i = 0; i < enemies.Length; i++){
+			enemies[i].SendMessage("Start");
+		}
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		if(enemies[0])
-			enemies[0].SendMessage("ActFree");
+		for(int i = 0; i < enemies.Length; i++){
+			if(enemies[i])
+				enemies[i].SendMessage("ActFree");
+		}
 
 		// Check if enemy has detected player then check if attacked
 			// If attacked: apply hitstun and knockback to player
