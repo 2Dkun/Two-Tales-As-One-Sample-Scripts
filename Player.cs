@@ -228,14 +228,14 @@ public class Player : MonoBehaviour {
 			this.xVel += -curClass.airAccel * Time.deltaTime * 30;
 			if(xVel < -curClass.airSpd)
 				xVel = -curClass.airSpd;
-			player.transform.localScale = new Vector2(-flipScale, flipScale);
+	//		player.transform.localScale = new Vector2(-flipScale, flipScale);
 		}
 		// MOVE RIGHT
 		else if(Input.GetKey(KeyCode.D)) {
 			this.xVel += curClass.airAccel * Time.deltaTime * 30;
 			if(xVel > curClass.airSpd)
 				xVel = curClass.airSpd;
-			player.transform.localScale = new Vector2(flipScale, flipScale);
+	//		player.transform.localScale = new Vector2(flipScale, flipScale);
 		}
 
 		// ATTACK
