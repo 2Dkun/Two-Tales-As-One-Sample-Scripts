@@ -46,7 +46,7 @@ public class Player : MonoBehaviour {
 	public PlayerClass sword, shield;
  
 	// Character states
-	private enum States { Grounded, Airborne, Swap, Attack, Parry, Hurt };
+	private enum States { Grounded, Airborne, Swap, Attack, Parry, Hurt, Block };
 	private States curState { get; set; }
 	private States prevState { get; set; }
 
@@ -105,18 +105,20 @@ public class Player : MonoBehaviour {
 	public void ControlPlayer(){
 		// See if player made any skill inputs
 		if(curClass == this.shield){
-			if(Input.GetKey(KeyCode.K))		ParryStrike();
+			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
+			else if(Input.GetKey(KeyCode.K))		ParryStrike(shield.skills[1]);
 		}
 
 		// Run through player state machine
 		switch(curState){
-			case States.Grounded:	MoveGrounded(); break;
-			case States.Airborne: 	MoveAirborne(); break;
-			case States.Swap:		Swap(); 		break;
-			case States.Attack:  	Attack();		break; // Play animation in this actual method please
-			case States.Parry: 		Attack();		break;
-			case States.Hurt:		ApplyHitstun(); break;
-			default: 								break;
+			case States.Grounded:	MoveGrounded(); 								break;
+			case States.Airborne: 	MoveAirborne(); 								break;
+			case States.Swap:		Swap(); 										break;
+			case States.Attack:  	Attack();										break; 
+			case States.Parry: 		Attack();										break;
+			case States.Hurt:		ApplyHitstun(); 								break;
+			case States.Block:		Block(shield.skills[0], KeyCode.Semicolon); 	break;
+			default: 																break;
 		}
 	}
 
@@ -416,7 +418,7 @@ public class Player : MonoBehaviour {
 	
 	// Apply hurt process if player got hit by an attack
 	public void Attacked(int damage){
-		if(curState != States.Hurt && curState != States.Parry){
+		if(curState != States.Hurt && curState != States.Parry && curState != States.Block){
 			curHP -= damage;
 			if(curHP < 0)	curHP = 0;
 
@@ -430,16 +432,39 @@ public class Player : MonoBehaviour {
 	
 
 	/* -------------------------------- SHIELD SKILLS -------------------------------- */
-	private void ParryStrike(){
+	// A skill that prevents the player from getting hit
+	private void Block(Attack skill, KeyCode cmd){
+		// Can only block on the ground
+		if(curState == States.Grounded){
+			ChangeState(States.Block);
+		}
+		else if(curState == States.Block){
+			// Play attack animation
+			player.GetComponent<SpriteRenderer>().sprite = skill.anim.PlayAnim();
+		}
+		// Handle inputs
+		if(Input.GetKeyUp(cmd)){
+			ChangeState(States.Grounded);
+		}
+		else if(Input.GetKey(KeyCode.A)) {
+			player.transform.localScale = new Vector2(-flipScale, flipScale);
+		}
+		else if(Input.GetKey(KeyCode.D)) {
+			player.transform.localScale = new Vector2(flipScale, flipScale);
+		}
+	}
+	
+	// A skill that switches the current player to Shida and strikes the enemy
+	private void ParryStrike(Attack skill){
 		// Skill can only be done during a parry
-		if(curState == States.Parry && shield.skills[0].mpCost <= curMP){
+		if(curState == States.Parry && skill.mpCost <= curMP){
 			// Reset previous attack
 			curAttack.anim.ResetAnim();
 			timer.resetWait();
 
 			// Set current attack as Skill1
-			curAttack = shield.skills[0];
-			curMP -= shield.skills[0].mpCost;
+			curAttack = skill;
+			curMP -= skill.mpCost;
 			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
 
 			// Apply the changes for swapping character
