@@ -16,7 +16,7 @@ public class LightShield : Projectile {
 				HitBox foeHit = new HitBox(); 
 				foes[i].SendMessage("GetCurAtk", foeHit);
 				if(!foeHit.IsEqual(new HitBox())){
-					if(base.IsHitTarget(hitBox, test, foeHit, foes[i])){
+					if(base.IsHitTarget(hitBox, gameObject, foeHit, foes[i])){
 						foes[i].SendMessage("RmvCurAtk");
 					}
 				}

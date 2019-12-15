@@ -6,7 +6,6 @@ public abstract class Projectile : MonoBehaviour {
 
     // Game Data Reference
     public GameObject dungeonData;
-    public GameObject test;
 
     // Position variables
     public float xShift, yShift;

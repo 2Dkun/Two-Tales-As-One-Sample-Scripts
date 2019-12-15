@@ -11,7 +11,7 @@ public class Attack {
 	public int power, cooldown;
 	public bool isParry;
 	public int mpCost;
+	public GameObject prefab;
 
 	public int getLastFrame() { return startup + linger; }
-
 }

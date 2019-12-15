@@ -6,5 +6,5 @@ using UnityEngine;
 static class Constants{
 	public const int PARRY_KO = -1;
 	public const int INSTANT_KO = 9999;
-	public const int SHORT_DELAY = 30;
+	public const int SHORT_DELAY = 60;
 }

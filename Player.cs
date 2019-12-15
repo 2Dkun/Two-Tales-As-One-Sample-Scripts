@@ -108,6 +108,7 @@ public class Player : MonoBehaviour {
 		if(curClass == this.shield){
 			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
 			else if(Input.GetKey(KeyCode.K))		ParryStrike(shield.skills[1]);
+			else if(Input.GetKey(KeyCode.U))		LightShield(shield.skills[2]);
 		}
 		else{
 			if(Input.GetKey(KeyCode.J))				AnotherSwing(sword.skills[0], sword.skills[1]);
@@ -141,19 +142,29 @@ public class Player : MonoBehaviour {
 			ChangeState(prevState);
 			return true; //Attack is completed
 		}
+		// Summon a projectile (if any) after the move
+		else if(timer.curFrame() == curAttack.getLastFrame() + 1){
+			GameObject proj = curAttack.prefab;
+			if(proj){
+				proj.GetComponent<Projectile>().dungeonData = gameObject;
+				Instantiate(proj, gameObject.transform.position, Quaternion.identity);
+			}
+		}
 		// Otherwise check if the move connected during its active frames
 		else if(timer.curFrame() >= curAttack.startup && timer.curFrame() <= curAttack.getLastFrame()){ 
-			// Check if attack connected with any enemy
-			for(int i = 0; i < foes.Length; i++){
-				// Check if enemy exists
-				if(foes[i] != null) {
-					HitBox foeHurt = new HitBox();
-					foes[i].SendMessage("GetHurtBox", foeHurt);
-					bool isHit = IsHitTarget(curAttack.hitBox, player, foeHurt, foes[i]);
+			// Check if attack connected with any enemy if it has a hitbox
+			if(!curAttack.hitBox.IsEqual(new HitBox())){
+				for(int i = 0; i < foes.Length; i++){
+					// Check if enemy exists
+					if(foes[i] != null) {
+						HitBox foeHurt = new HitBox();
+						foes[i].SendMessage("GetHurtBox", foeHurt);
+						bool isHit = IsHitTarget(curAttack.hitBox, player, foeHurt, foes[i]);
 
-					// Tell the enemy that it has been attacked
-					if(isHit){
-						foes[i].SendMessage("Attacked", curAttack.power);
+						// Tell the enemy that it has been attacked
+						if(isHit){
+							foes[i].SendMessage("Attacked", curAttack.power);
+						}
 					}
 				}
 			}
@@ -504,4 +515,17 @@ public class Player : MonoBehaviour {
 			playerHUD.GetComponent<HUDManager>().SwapChar();	
 		}
 	}
+
+	// A skill that creates a shield projectile
+	private void LightShield(Attack skill){
+		if(curState == States.Grounded && skill.mpCost <= curMP){
+			// Set current attack as Skill1
+			curAttack = skill;
+			curMP -= skill.mpCost;
+			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
+
+			ChangeState(States.Attack);
+		}
+	}
+
 }
