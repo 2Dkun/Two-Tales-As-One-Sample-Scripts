@@ -147,6 +147,9 @@ public class Player : MonoBehaviour {
 			GameObject proj = curAttack.prefab;
 			if(proj){
 				proj.GetComponent<Projectile>().dungeonData = gameObject;
+				Vector3 scale = proj.transform.localScale;
+				scale.z = transform.localScale.x/flipScale;
+				proj.transform.localScale = scale;
 				Instantiate(proj, gameObject.transform.position, Quaternion.identity);
 			}
 		}

@@ -17,7 +17,14 @@ public abstract class Projectile : MonoBehaviour {
     public int basePow, hitstun;
     // Animation variables
     public SpriteAnimator projAnim;
-    
+    // Other variables
+    public int duration;
+
+    public void Start(){
+        transform.Translate(new Vector2(xShift * getDir(), yShift));
+        Destroy(gameObject, duration);
+    }
+
     // Update is called once per frame
     public void Update () {
         transform.Translate(new Vector2(xVel * getDir() * Time.deltaTime, yVel * Time.deltaTime));
