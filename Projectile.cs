@@ -6,6 +6,7 @@ public abstract class Projectile : MonoBehaviour {
 
     // Game Data Reference
     public GameObject dungeonData;
+    public GameObject test;
 
     // Position variables
     public float xShift, yShift;
@@ -33,12 +34,12 @@ public abstract class Projectile : MonoBehaviour {
 	public bool IsHitTarget(HitBox userHit, GameObject user, HitBox targetHurt, GameObject target) {
 		// Shift user hitbox to position
 		int flipScale = (int) (user.transform.localScale.x / (Mathf.Abs(user.transform.localScale.x))); 
-		userHit.flipBox(-flipScale);
+		userHit.flipBox(flipScale);
 		userHit.shiftBox(user.transform.localPosition.x, user.transform.localPosition.y);
 
 		// Shift target hurtbox to position
 		flipScale = (int) (target.transform.localScale.x / (Mathf.Abs(target.transform.localScale.x))); 
-		targetHurt.flipBox(flipScale);
+		targetHurt.flipBox(-flipScale);
 		targetHurt.shiftBox(target.transform.localPosition.x, target.transform.localPosition.y);
 
 		// See if the hitbox came inot contact with hurtbox

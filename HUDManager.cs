@@ -80,7 +80,7 @@ public class HUDManager : MonoBehaviour {
 		newPos += statBars[bar].empty;
 
 		// Move shadow bar to old position
-		statBars[bar].shadow.transform.localPosition = statBars[bar].original.transform.localPosition;
+		//statBars[bar].shadow.transform.localPosition = statBars[bar].original.transform.localPosition;
 		// Set the given status bar to that position
 		statBars[bar].original.transform.localPosition = newPos;
 		statBars[bar].barChanged = true;
