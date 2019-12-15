@@ -13,13 +13,18 @@ public class LightShield : Projectile {
         for(int i = 0; i < foes.Length; i++){
             // Check if enemy exists
 			if(foes[i] != null) {
-				HitBox foeHit = new HitBox(); 
-				foes[i].SendMessage("GetCurAtk", foeHit);
-				if(!foeHit.IsEqual(new HitBox())){
-					if(base.IsHitTarget(hitBox, gameObject, foeHit, foes[i])){
-						foes[i].SendMessage("RmvCurAtk");
-					}
-				}
+                // Make sure player is actually behind shield
+                float projDist = Vector2.Distance(foes[i].transform.position, transform.position);
+                float playerDist = Vector2.Distance(foes[i].transform.position, dungeonData.transform.position);
+                if(projDist <= playerDist){
+                    HitBox foeHit = new HitBox(); 
+                    foes[i].SendMessage("GetCurAtk", foeHit);
+                    if(!foeHit.IsEqual(new HitBox())){
+                        if(base.IsHitTarget(hitBox, gameObject, foeHit, foes[i])){
+                            foes[i].SendMessage("RmvCurAtk");
+                        }
+                    }
+                }
 			}
         }
     }
