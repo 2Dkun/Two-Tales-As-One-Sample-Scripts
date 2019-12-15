@@ -167,8 +167,12 @@ public abstract class Enemy: MonoBehaviour {
 				player.SendMessage("Attacked", a.power);
 				hitPlayer = true;
 			}
+		}
+		// Enable attack hitbox for other classes to reference
+		else if(timer.curFrame() < a.startup && timer.curFrame() >= a.startup - 1){
 			activeHit = a.hitBox;
 		}
+		// Disable attack hitbox for other classes to reference
 		else if(timer.curFrame() == 0 || timer.curFrame() == a.getLastFrame()+1){
 			activeHit = null;
 		}
@@ -221,6 +225,10 @@ public abstract class Enemy: MonoBehaviour {
 	public void GetCurAtk(HitBox h) {
 		if(activeHit != null)
 			h.Clone(activeHit);
+	}
+	// Prevent the player from getting hit by the current attack
+	public void RmvCurAtk(){
+		hitPlayer = true;
 	}
 
 	// Copy the enemy's hurtbox
