@@ -9,6 +9,7 @@ public class Attack {
 	public HitBox hitBox;
 	public int startup, linger, endlag;
 	public int power, cooldown;
+	public float xVel, yVel;
 	public bool isParry;
 	public int mpCost;
 	public GameObject prefab;

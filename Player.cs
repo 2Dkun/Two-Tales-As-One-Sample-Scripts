@@ -84,13 +84,6 @@ public class Player : MonoBehaviour {
 	public void Update(){
 		ControlPlayer();
 
-		/*
-		if(Input.GetKeyDown(KeyCode.K)){
-			curHP -= 10;
-			playerHUD.GetComponent<HUDManager>().UpdateHP((float)curHP/maxHP);
-		}
-		*/
-
 		// Update SWAP meter
 		if(curSP < 100) {
 			curSP += Time.deltaTime * curClass.swapRate;
@@ -108,10 +101,11 @@ public class Player : MonoBehaviour {
 		if(curClass == this.shield){
 			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
 			else if(Input.GetKey(KeyCode.K))		ParryStrike(shield.skills[1]);
-			else if(Input.GetKey(KeyCode.U))		LightShield(shield.skills[2]);
+			else if(Input.GetKey(KeyCode.U))		BasicSkill(shield.skills[2]);
 		}
 		else{
 			if(Input.GetKey(KeyCode.J))				AnotherSwing(sword.skills[0], sword.skills[1]);
+			else if(Input.GetKey(KeyCode.U))		BasicSkill(sword.skills[2]);
 		}
 
 		// Run through player state machine
@@ -129,6 +123,11 @@ public class Player : MonoBehaviour {
 
 	// Perform current attack
 	private bool Attack() {
+
+		// Move the player based on attack velocity
+		float playDir = transform.localScale.x/flipScale;
+ 		player.transform.Translate(playDir * curAttack.xVel * Time.deltaTime, 
+		 	curAttack.yVel * Time.deltaTime, 0);
 
 		// Play attack animation
 		player.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
@@ -449,6 +448,18 @@ public class Player : MonoBehaviour {
 	}
 	
 
+	// Allows players to use a skill with no unique traits
+	private void BasicSkill(Attack skill){
+		if(curState == States.Grounded && skill.mpCost <= curMP){
+			// Set current attack as Skill1
+			curAttack = skill;
+			curMP -= skill.mpCost;
+			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
+
+			ChangeState(States.Attack);
+		}
+	}
+
 	/* -------------------------------- SWORD SKILLS -------------------------------- */
 	// A skill that allows for multiple swings from Shida's basic attack
 	private void AnotherSwing(Attack atk2, Attack atk3) {
@@ -516,18 +527,6 @@ public class Player : MonoBehaviour {
 			curSP = 0;
 
 			playerHUD.GetComponent<HUDManager>().SwapChar();	
-		}
-	}
-
-	// A skill that creates a shield projectile
-	private void LightShield(Attack skill){
-		if(curState == States.Grounded && skill.mpCost <= curMP){
-			// Set current attack as Skill1
-			curAttack = skill;
-			curMP -= skill.mpCost;
-			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
-
-			ChangeState(States.Attack);
 		}
 	}
 
