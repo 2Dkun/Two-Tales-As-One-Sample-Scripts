@@ -81,6 +81,7 @@ public class Player : MonoBehaviour {
 	}
 
 	// TESTING PURPOSES REMOVE ME LATER
+	/*
 	public void Update(){
 		ControlPlayer();
 
@@ -93,10 +94,20 @@ public class Player : MonoBehaviour {
 			playerHUD.GetComponent<HUDManager>().UpdateSP(curSP/100);		
 		}
 	}
+	*/
+
+	public void UpdateGround(float newHeight){
+		minHeight = newHeight;
+		if(minHeight != transform.position.y) {
+			//Debug.Log("check");
+			if(curState == States.Grounded) 	ChangeState(States.Airborne);
+			if(prevState == States.Grounded) 	prevState = States.Airborne;
+		}
+	}
 
 	// Allow the user to have full control over the player
 	public void ControlPlayer(){
-	//	Debug.Log(curState);
+		Debug.Log(curState);
 		// See if player made any skill inputs
 		if(curClass == this.shield){
 			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
@@ -263,6 +274,7 @@ public class Player : MonoBehaviour {
             player.transform.localPosition = new Vector2(player.transform.localPosition.x, minHeight);
 			ChangeState(States.Grounded);
 			xVel = 0;
+			yVel = 0;
         }
 	}
 
