@@ -41,25 +41,18 @@ public class DungeonManager : MonoBehaviour {
 				Vector3 pointB = groundPoints[i+1].transform.position;
 				if(pointA.x < curPos.x){
 					if(pointB.x >= curPos.x){
-						// Update ground height
-						/*
-						// Dealing with slopes if we want them
-						float newY = curPos.x - pointA.x;
-						newY *= (pointA.y-pointB.y)/(pointA.x-pointB.x);
-						newY += pointA.y;
-						*/
-						// Moved left
 						playerPos.y = player.transform.position.y;
+						// Moved left
 						if(playerPos.x > curPos.x && pointA.y > curPos.y){
 							player.transform.position = playerPos;
-							Debug.Log("left");
 						}
+						// Moved right
 						else if(playerPos.x < curPos.x && pointB.y > curPos.y){
 							player.transform.position = playerPos;
-							Debug.Log("right");
 						}
 						else{
-							player.GetComponent<Player>().UpdateGround(pointB.y);
+							float newGround = Mathf.Max(pointA.y, pointB.y);
+							player.GetComponent<Player>().UpdateGround(newGround);
 						}
 					}
 				}
