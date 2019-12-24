@@ -28,7 +28,7 @@ public abstract class Enemy: MonoBehaviour {
 	public States prevState 		{ get; set; }
 
     // Other data
-    public GameObject enemy;
+    //private GameObject enemy;
 	public HitBox hurtbox;
     public int curHP				{ get; set; }
 	public Vector2 origin			{ get; set; }
@@ -54,8 +54,8 @@ public abstract class Enemy: MonoBehaviour {
 		curHP = this.maxHP;
 		curState = States.Undected;
 		prevState = States.Undected;
-		flipScale = Mathf.Abs(enemy.transform.localScale.x);
-		origin = enemy.transform.localPosition;
+		flipScale = Mathf.Abs(transform.localScale.x);
+		origin = transform.localPosition;
 		timer = new FrameCounter();
 		subTimer = new FrameCounter();
 
@@ -86,9 +86,9 @@ public abstract class Enemy: MonoBehaviour {
 		// Otherwise play hitstun animation
 		else{
 			if(subTimer.curFrame() % 3 == 1){
-				enemy.GetComponent<SpriteRenderer>().color = new Color(1,0,0);
+				gameObject.GetComponent<SpriteRenderer>().color = new Color(1,0,0);
 			} else{
-				enemy.GetComponent<SpriteRenderer>().color = new Color(1,1,1);
+				gameObject.GetComponent<SpriteRenderer>().color = new Color(1,1,1);
 			}
 		}
 	}
@@ -102,9 +102,9 @@ public abstract class Enemy: MonoBehaviour {
 		// Otherwise play stunned animation
 		else{
 			if(timer.curFrame() % 3 == 1){
-				enemy.GetComponent<SpriteRenderer>().color = new Color(1,1,0);
+				gameObject.GetComponent<SpriteRenderer>().color = new Color(1,1,0);
 			} else{
-				enemy.GetComponent<SpriteRenderer>().color = new Color(1,1,1);
+				gameObject.GetComponent<SpriteRenderer>().color = new Color(1,1,1);
 			}
 		}
 	}
@@ -112,19 +112,22 @@ public abstract class Enemy: MonoBehaviour {
     // Remove the enemy gameObj upon death
     public void DestroyFoe() {
         // Fade GameObject to nothing
-		float curAlpha = enemy.GetComponent<SpriteRenderer>().color.a - Time.deltaTime;
-		enemy.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, curAlpha);
+		float curAlpha = gameObject.GetComponent<SpriteRenderer>().color.a - Time.deltaTime;
+		gameObject.GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, curAlpha);
         if (curAlpha < 0) {
             curAlpha = 0;
-			Destroy(enemy);
+			Destroy(gameObject);
         }
         
        
     }
 
 	// See if the player is nearby 
-	public void DetectPlayer() {
-		bool isHit = IsHitTarget(fov, enemy, player.GetComponent<Player>().hurtBox, player);
+	public void DetectPlayer(bool isCircle) {
+		// Set hitbox for detection
+		if(isCircle)	fov = new HitBox(foe.detectRad, foe.detectRad, -foe.detectRad, -foe.detectRad);
+		else			fov = new HitBox(foe.detectRad, 1, -foe.detectRad, -1);
+		bool isHit = IsHitTarget(fov, gameObject, player.GetComponent<Player>().hurtBox, player);
 
 		if(isHit){
 			ChangeState(States.Grounded);
@@ -151,7 +154,7 @@ public abstract class Enemy: MonoBehaviour {
 	// Perform the given attack
 	public void Attack(Attack a) {
 		// Play attack anim
-		enemy.GetComponent<SpriteRenderer>().sprite = a.anim.PlayAnim();
+		gameObject.GetComponent<SpriteRenderer>().sprite = a.anim.PlayAnim();
 
 		// See if the move has ended
 		if(timer.WaitForXFrames(a.endlag)){ 
@@ -162,7 +165,7 @@ public abstract class Enemy: MonoBehaviour {
 		}
 		// Otherwise check if the move connected during its active frames
 		else if(timer.curFrame() >= a.startup && timer.curFrame() <= a.getLastFrame() && !hitPlayer){
-			bool isHit = IsHitTarget(a.hitBox, enemy, player.GetComponent<Player>().hurtBox, player);
+			bool isHit = IsHitTarget(a.hitBox, gameObject, player.GetComponent<Player>().hurtBox, player);
 			if(isHit){
 				player.SendMessage("Attacked", a.power);
 				hitPlayer = true;
@@ -192,7 +195,7 @@ public abstract class Enemy: MonoBehaviour {
     // Apply hurt process if player got hit by an attack
     public void Attacked(int damage) {
         //if(curState != States.Hurt){
-		if(!isHurt && curState != States.KO){
+		if(!isHurt && curState != States.KO && damage > 0){
 			if(damage == Constants.PARRY_KO) {
 				if(curState == States.Stunned)
 					damage = Constants.INSTANT_KO;
