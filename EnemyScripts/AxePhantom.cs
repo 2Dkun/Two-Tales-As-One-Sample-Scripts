@@ -17,7 +17,7 @@ public class AxePhantom : Enemy {
 	// Update is called once per frame
 	void Update () {
 	//	ActFree();
-		Debug.Log(curState + " " + prevState);
+	//	Debug.Log(curState + " " + prevState);
 	}
 
 	// Allow the enemy to act freely
@@ -45,32 +45,32 @@ public class AxePhantom : Enemy {
 	override public void ActIdle() {
 
 		// Wait a moment before turning around
-		if(enemy.transform.localPosition.x > origin.x + foe.walkDist/2){
+		if(transform.localPosition.x > origin.x + foe.walkDist/2){
 			if(timer.WaitForXFrames(Random.Range(55,75))){
-				enemy.transform.localScale = new Vector2(flipScale, flipScale);
-				enemy.transform.localPosition = 
-					new Vector2(origin.x + foe.walkDist/2, enemy.transform.localPosition.y);
+				transform.localScale = new Vector2(flipScale, flipScale);
+				transform.localPosition = 
+					new Vector2(origin.x + foe.walkDist/2, transform.localPosition.y);
 			}
 		}
-		else if(enemy.transform.localPosition.x < -(origin.x + foe.walkDist/2)) {
+		else if(transform.localPosition.x < -(origin.x + foe.walkDist/2)) {
 			if(timer.WaitForXFrames(Random.Range(55,75))){
-				enemy.transform.localScale = new Vector2(-flipScale, flipScale);
-				enemy.transform.localPosition = 
-					new Vector2(-(origin.x + foe.walkDist/2), enemy.transform.localPosition.y);
+				transform.localScale = new Vector2(-flipScale, flipScale);
+				transform.localPosition = 
+					new Vector2(-(origin.x + foe.walkDist/2), transform.localPosition.y);
 			}
 		}
 
 		// Walk to left
-		else if(enemy.transform.localScale.x > 0){
-			enemy.transform.Translate(-foe.walkSpd * Time.deltaTime, 0, 0);
+		else if(transform.localScale.x > 0){
+			transform.Translate(-foe.walkSpd * Time.deltaTime, 0, 0);
 		}
 		// Walk to right
 		else {
-			enemy.transform.Translate(foe.walkSpd * Time.deltaTime, 0, 0);
+			transform.Translate(foe.walkSpd * Time.deltaTime, 0, 0);
 		}
 
 		// Try to detect player
-		base.DetectPlayer();
+		base.DetectPlayer(false);
 	}
 
 	// Handles AI for enemy when player is detected
@@ -82,15 +82,15 @@ public class AxePhantom : Enemy {
 				cooldown = 0;
 			else {
 				// PLAY WALK ANIM
-				enemy.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.walk[0];
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.walk[0];
 
-				if(enemy.transform.localPosition.x > player.transform.localPosition.x){
-					enemy.transform.localScale = new Vector2(flipScale, flipScale);
-					enemy.transform.Translate(foe.walkSpd * Time.deltaTime, 0, 0);
+				if(transform.localPosition.x > player.transform.localPosition.x){
+					transform.localScale = new Vector2(flipScale, flipScale);
+					transform.Translate(foe.walkSpd * Time.deltaTime, 0, 0);
 				}
 				else {
-					enemy.transform.localScale = new Vector2(-flipScale, flipScale);
-					enemy.transform.Translate(-foe.walkSpd * Time.deltaTime, 0, 0);
+					transform.localScale = new Vector2(-flipScale, flipScale);
+					transform.Translate(-foe.walkSpd * Time.deltaTime, 0, 0);
 				}
 			}
 		}
@@ -98,7 +98,7 @@ public class AxePhantom : Enemy {
 		else{
 			// See if player is close enough to swing
 			HitBox hurt = player.GetComponent<Player>().hurtBox;
-			bool isStrike = base.IsHitTarget(strikeBox, enemy, hurt, player);
+			bool isStrike = base.IsHitTarget(strikeBox, gameObject, hurt, player);
 			if(isStrike){
 				curAtk = foe.atk[0];
 				ChangeState(States.Attack);
@@ -106,15 +106,15 @@ public class AxePhantom : Enemy {
 			// Dash towards player if not close enough
 			else {
 				// PLAY DASH ANIMATION
-				enemy.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.dash[0];
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.dash[0];
 
-				if(enemy.transform.localPosition.x > player.transform.localPosition.x){
-					enemy.transform.localScale = new Vector2(flipScale, flipScale);
-					enemy.transform.Translate(-foe.dashSpd * Time.deltaTime, 0, 0);
+				if(transform.localPosition.x > player.transform.localPosition.x){
+					transform.localScale = new Vector2(flipScale, flipScale);
+					transform.Translate(-foe.dashSpd * Time.deltaTime, 0, 0);
 				}
 				else {
-					enemy.transform.localScale = new Vector2(-flipScale, flipScale);
-					enemy.transform.Translate(foe.dashSpd * Time.deltaTime, 0, 0);
+					transform.localScale = new Vector2(-flipScale, flipScale);
+					transform.Translate(foe.dashSpd * Time.deltaTime, 0, 0);
 				}
 			}
 		}
