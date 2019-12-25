@@ -159,6 +159,8 @@ public class Player : MonoBehaviour {
 				proj.GetComponent<Projectile>().dungeonData = gameObject;
 				Vector3 scale = proj.transform.localScale;
 				scale.z = transform.localScale.x/flipScale;
+				scale.x = -transform.localScale.x/flipScale;
+				scale.x *= proj.transform.localScale.x;
 				proj.transform.localScale = scale;
 				Instantiate(proj, gameObject.transform.position, Quaternion.identity);
 			}
@@ -446,7 +448,7 @@ public class Player : MonoBehaviour {
 	
 	// Apply hurt process if player got hit by an attack
 	public void Attacked(int damage){
-		if(curState != States.Parry && curState != States.Block){
+		if(curState != States.Parry && curState != States.Block && damage > 0){
 			curHP -= damage;
 			if(curHP < 0)	curHP = 0;
 

@@ -18,7 +18,7 @@ public abstract class Projectile : MonoBehaviour {
     // Animation variables
     public SpriteAnimator projAnim;
     // Other variables
-    public int duration;
+    public float duration;
 
     public void Start(){
         transform.Translate(new Vector2(xShift * getDir(), yShift));

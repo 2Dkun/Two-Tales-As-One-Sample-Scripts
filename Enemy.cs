@@ -163,6 +163,19 @@ public abstract class Enemy: MonoBehaviour {
 			a.anim.ResetAnim();
 			hitPlayer = false;
 		}
+		// Summon a projectile (if any) after the move
+		else if(timer.curFrame() == a.getLastFrame() + 1){
+			GameObject proj = a.prefab;
+			if(proj){
+				proj.GetComponent<Projectile>().dungeonData = gameObject;
+				Vector3 scale = proj.transform.localScale;
+				scale.z = -transform.localScale.x/flipScale;
+				scale.x = transform.localScale.x/flipScale;
+				scale.x *= proj.transform.localScale.x;
+				proj.transform.localScale = scale;
+				Instantiate(proj, gameObject.transform.position, Quaternion.identity);
+			}
+		}
 		// Otherwise check if the move connected during its active frames
 		else if(timer.curFrame() >= a.startup && timer.curFrame() <= a.getLastFrame() && !hitPlayer){
 			bool isHit = IsHitTarget(a.hitBox, gameObject, player.GetComponent<Player>().hurtBox, player);
@@ -179,6 +192,7 @@ public abstract class Enemy: MonoBehaviour {
 		else if(timer.curFrame() == 0 || timer.curFrame() == a.getLastFrame()+1){
 			activeHit = null;
 		}
+
 
 	}
 
