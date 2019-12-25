@@ -159,8 +159,8 @@ public class Player : MonoBehaviour {
 				proj.GetComponent<Projectile>().dungeonData = gameObject;
 				Vector3 scale = proj.transform.localScale;
 				scale.z = transform.localScale.x/flipScale;
-				scale.x = -transform.localScale.x/flipScale;
-				scale.x *= proj.transform.localScale.x;
+				scale.x = transform.localScale.x/flipScale;
+				scale.x *= Mathf.Abs(proj.transform.localScale.x);
 				proj.transform.localScale = scale;
 				Instantiate(proj, gameObject.transform.position, Quaternion.identity);
 			}
