@@ -167,10 +167,10 @@ public abstract class Enemy: MonoBehaviour {
 		else if(timer.curFrame() == a.getLastFrame() + 1){
 			GameObject proj = a.prefab;
 			if(proj){
-				proj.GetComponent<Projectile>().dungeonData = gameObject;
+				proj.GetComponent<Projectile>().dungeonData = player;
 				Vector3 scale = proj.transform.localScale;
 				scale.z = -transform.localScale.x/flipScale;
-				scale.x = transform.localScale.x/flipScale;
+				scale.x = -transform.localScale.x/flipScale;
 				scale.x *= proj.transform.localScale.x;
 				proj.transform.localScale = scale;
 				Instantiate(proj, gameObject.transform.position, Quaternion.identity);
