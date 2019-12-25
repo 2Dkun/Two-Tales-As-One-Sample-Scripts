@@ -5,6 +5,8 @@ using UnityEngine;
 public class MechEye : Enemy {
 
     // Enemy child specific variables
+	public float strikeDist;
+	private HitBox strikeBox = new HitBox();
     private Vector3 oldSpot, newSpot;
 	public float amp;
  
@@ -12,6 +14,7 @@ public class MechEye : Enemy {
 	new void Start () {
 		base.Start();
 
+		strikeBox = new HitBox(strikeDist, 1, 0, -1);
 		newSpot.x = -(origin.x + foe.walkDist/2);
 		newSpot.y = origin.y + Random.Range(-1, 1);
 	}
@@ -79,7 +82,56 @@ public class MechEye : Enemy {
 
 	// Handles AI for enemy when player is detected
 	override public void Agro() {
-		
+		// Back away from player slowly if enemy is in cooldown
+		if(cooldown > 0){
+			if(timer.WaitForXFrames(cooldown))
+				cooldown = 0;
+			else {
+				// PLAY WALK ANIM
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.walk[0];
+
+				// Move up and away from player
+				if(transform.localPosition.x > player.transform.localPosition.x){
+					transform.localScale = new Vector2(flipScale, flipScale);
+					transform.Translate(-foe.dashSpd * Time.deltaTime, foe.dashSpd * Time.deltaTime, 0);
+				}
+				else {
+					transform.localScale = new Vector2(-flipScale, flipScale);
+					transform.Translate(foe.dashSpd * Time.deltaTime, foe.dashSpd * Time.deltaTime, 0);
+				}
+			}
+		}
+		// Otherwise go on the offense
+		else{
+			// See if player is close enough to shoot
+			HitBox hurt = player.GetComponent<Player>().hurtBox;
+			bool isStrike = base.IsHitTarget(strikeBox, gameObject, hurt, player);
+			if(isStrike){
+				curAtk = foe.atk[0];
+				ChangeState(States.Attack);
+			}
+			// Dash towards player if not close enough
+			else {
+				// PLAY DASH ANIMATION
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.dash[0];
+				// MOVE HORIZONTALLY TOWARDS PLAYER
+				if(transform.localPosition.x > player.transform.localPosition.x){
+					transform.localScale = new Vector2(flipScale, flipScale);
+					transform.Translate(-foe.dashSpd * Time.deltaTime, 0, 0);
+				}
+				else {
+					transform.localScale = new Vector2(-flipScale, flipScale);
+					transform.Translate(foe.dashSpd * Time.deltaTime, 0, 0);
+				}
+				// MOVE VERTICALLY TOWARDS PLAYER
+				if(transform.localPosition.y > player.transform.localPosition.y){
+					transform.Translate(0, -foe.dashSpd * Time.deltaTime,  0);
+				}
+				else {
+					transform.Translate(0, foe.dashSpd * Time.deltaTime, 0);
+				}
+			}
+		}
 		
 	}
 }
