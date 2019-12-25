@@ -14,7 +14,7 @@ public class MechEye : Enemy {
 	new void Start () {
 		base.Start();
 
-		strikeBox = new HitBox(strikeDist, 1, 0, -1);
+		strikeBox = new HitBox(strikeDist, 0.1f, 0, -0.1f);
 		newSpot.x = -(origin.x + foe.walkDist/2);
 		newSpot.y = origin.y + Random.Range(-1, 1);
 	}
@@ -93,11 +93,11 @@ public class MechEye : Enemy {
 				// Move up and away from player
 				if(transform.localPosition.x > player.transform.localPosition.x){
 					transform.localScale = new Vector2(flipScale, flipScale);
-					transform.Translate(-foe.dashSpd * Time.deltaTime, foe.dashSpd * Time.deltaTime, 0);
+					transform.Translate(foe.walkSpd * Time.deltaTime, foe.dashSpd * Time.deltaTime, 0);
 				}
 				else {
 					transform.localScale = new Vector2(-flipScale, flipScale);
-					transform.Translate(foe.dashSpd * Time.deltaTime, foe.dashSpd * Time.deltaTime, 0);
+					transform.Translate(-foe.walkSpd * Time.deltaTime, foe.dashSpd * Time.deltaTime, 0);
 				}
 			}
 		}
@@ -127,7 +127,7 @@ public class MechEye : Enemy {
 				if(transform.localPosition.y > player.transform.localPosition.y){
 					transform.Translate(0, -foe.dashSpd * Time.deltaTime,  0);
 				}
-				else {
+				else if (transform.localPosition.y < player.transform.localPosition.y){
 					transform.Translate(0, foe.dashSpd * Time.deltaTime, 0);
 				}
 			}
