@@ -2,15 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DarkOrb : Enemy {
+public class LightOrb : Enemy {
 
     // Enemy child specific variables
     public GameObject lancer;
+    public float xShift, yShift;
     public int damage;
 
     // Maybe remove
     private Vector3 oldSpot, newSpot;
-	public float amp;
+	public float amp, wavelen;
  
 	// Use this for initialization
 	new void Start () {
@@ -20,8 +21,9 @@ public class DarkOrb : Enemy {
         curAtk = null;
 
         // MAYBE REMOVE
-		newSpot.x = -(origin.x + foe.walkDist/2);
+		newSpot.x = origin.x - foe.walkDist/2;
 		newSpot.y = origin.y + Random.Range(-1, 1);
+		Debug.Log(newSpot.x);
 	}
 
 	// Allow the enemy to act freely
@@ -46,9 +48,60 @@ public class DarkOrb : Enemy {
 
 	// Handles AI for enemy when player is not detected
 	override public void ActIdle() {
+
+        // See if we have come into contact with the player
+		HitBox hurt = player.GetComponent<Player>().hurtBox;
+		bool isStrike = base.IsHitTarget(hurtbox, gameObject, hurt, player);
+		if(isStrike){
+            player.SendMessage("Attacked", damage);
+		}
+
+        /* ---------- Move in the area above and in front of lancer ---------- */
+        // Set relative origin for orb
+		if(lancer.transform.localScale.x > 0){
+			origin = new Vector2(lancer.transform.localPosition.x + xShift,
+									lancer.transform.localPosition.y + yShift);
+		}
+		else{
+			origin = new Vector2(lancer.transform.localPosition.x - xShift,
+									lancer.transform.localPosition.y + yShift);
+		}
+
+       // Wait a moment before turning around
+		if(transform.localPosition.x > origin.x + foe.walkDist/2){
+			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
+				transform.localScale = new Vector2(flipScale, flipScale);
+				transform.localPosition = 
+					new Vector2(origin.x + foe.walkDist/2, transform.localPosition.y);
+				// Find new spot
+				newSpot.x = origin.x - foe.walkDist/2;
+		}
+		else if(transform.localPosition.x < origin.x - foe.walkDist/2) {
+			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
+				transform.localScale = new Vector2(-flipScale, flipScale);
+				transform.localPosition = 
+					new Vector2(origin.x - foe.walkDist/2, transform.localPosition.y);
+				// Find new spot
+				newSpot.x = origin.x + foe.walkDist/2;
+		}
+
+		// Move to left
+		else if(transform.localScale.x > 0){
+			transform.Translate(-foe.walkSpd * Time.deltaTime, 
+				Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp  , 0);
+		}
+		// Move to right
+		else {
+			transform.Translate(foe.walkSpd * Time.deltaTime, 
+				Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp , 0);
+		}
+
+
+        /* DO THIS ONCE DARK ORB DIES
 		// Player is always detected since it's a boss battle
 		ChangeState(States.Grounded);
 		timer.resetWait();
+        */
 	}
 
 	// Handles AI for enemy when player is detected
