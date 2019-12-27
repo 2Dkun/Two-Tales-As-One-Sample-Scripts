@@ -20,10 +20,8 @@ public class LightOrb : Enemy {
         base.SetActiveHit(hurtbox);
         curAtk = null;
 
-        // MAYBE REMOVE
-		newSpot.x = origin.x - foe.walkDist/2;
-		newSpot.y = origin.y + Random.Range(-1, 1);
-		Debug.Log(newSpot.x);
+        transform.localPosition = new Vector2(transform.localPosition.x, 
+			lancer.transform.localPosition.y + yShift);
 	}
 
 	// Allow the enemy to act freely
@@ -73,18 +71,13 @@ public class LightOrb : Enemy {
 				transform.localScale = new Vector2(flipScale, flipScale);
 				transform.localPosition = 
 					new Vector2(origin.x + foe.walkDist/2, transform.localPosition.y);
-				// Find new spot
-				newSpot.x = origin.x - foe.walkDist/2;
 		}
 		else if(transform.localPosition.x < origin.x - foe.walkDist/2) {
 			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
 				transform.localScale = new Vector2(-flipScale, flipScale);
 				transform.localPosition = 
 					new Vector2(origin.x - foe.walkDist/2, transform.localPosition.y);
-				// Find new spot
-				newSpot.x = origin.x + foe.walkDist/2;
 		}
-
 		// Move to left
 		else if(transform.localScale.x > 0){
 			transform.Translate(-foe.walkSpd * Time.deltaTime, 
@@ -94,6 +87,15 @@ public class LightOrb : Enemy {
 		else {
 			transform.Translate(foe.walkSpd * Time.deltaTime, 
 				Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp , 0);
+		}
+
+		if(transform.localPosition.y > lancer.transform.localPosition.y + yShift + amp) {
+			transform.localPosition = new Vector2(transform.localPosition.x, 
+				lancer.transform.localPosition.y + yShift + amp);
+		}
+		else if(transform.localPosition.y < lancer.transform.localPosition.y + yShift - amp) {
+			transform.localPosition = new Vector2(transform.localPosition.x, 
+				lancer.transform.localPosition.y + yShift - amp);
 		}
 
 
