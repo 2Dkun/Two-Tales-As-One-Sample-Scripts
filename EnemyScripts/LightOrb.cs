@@ -65,21 +65,16 @@ public class LightOrb : Enemy {
 									lancer.transform.localPosition.y + yShift);
 		}
 
-       // Wait a moment before turning around
+        // Turn the orb around
 		if(transform.localPosition.x > origin.x + foe.walkDist/2){
-			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
-				transform.localScale = new Vector2(flipScale, flipScale);
-				transform.localPosition = 
-					new Vector2(origin.x + foe.walkDist/2, transform.localPosition.y);
+			transform.localScale = new Vector2(flipScale, flipScale);
 		}
 		else if(transform.localPosition.x < origin.x - foe.walkDist/2) {
-			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
-				transform.localScale = new Vector2(-flipScale, flipScale);
-				transform.localPosition = 
-					new Vector2(origin.x - foe.walkDist/2, transform.localPosition.y);
+			transform.localScale = new Vector2(-flipScale, flipScale);
 		}
+
 		// Move to left
-		else if(transform.localScale.x > 0){
+		if(transform.localScale.x > 0){
 			transform.Translate(-foe.walkSpd * Time.deltaTime, 
 				Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp  , 0);
 		}
