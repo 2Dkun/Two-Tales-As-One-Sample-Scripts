@@ -7,10 +7,6 @@ public class DarkOrb : Enemy {
     // Enemy child specific variables
     public GameObject lancer;
     public int damage;
-
-    // Maybe remove
-    private Vector3 oldSpot, newSpot;
-	public float amp;
  
 	// Use this for initialization
 	new void Start () {
@@ -18,10 +14,6 @@ public class DarkOrb : Enemy {
 
         base.SetActiveHit(hurtbox);
         curAtk = null;
-
-        // MAYBE REMOVE
-		newSpot.x = -(origin.x + foe.walkDist/2);
-		newSpot.y = origin.y + Random.Range(-1, 1);
 	}
 
 	// Allow the enemy to act freely
