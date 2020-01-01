@@ -259,6 +259,12 @@ public abstract class Enemy: MonoBehaviour {
 		foeHurt.Clone(hurtbox);
 	}
 
+/*
+	// Prevent the enemy from 
+	public void ForceIdle() {
+
+	}
+*/
 
 	/*
 		Getter/Setter functions

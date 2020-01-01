@@ -7,4 +7,6 @@ static class Constants{
 	public const int PARRY_KO = -1;
 	public const int INSTANT_KO = 9999;
 	public const int SHORT_DELAY = 60;
+	public const int IFRAMES = 90;
+	public const float AWAKE_DIST = 30;
 }
