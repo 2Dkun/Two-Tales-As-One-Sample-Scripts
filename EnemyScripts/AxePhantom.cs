@@ -7,6 +7,7 @@ public class AxePhantom : Enemy {
 	// Enemy child specific variables
 	public float strikeDist;
 	private HitBox strikeBox = new HitBox();
+	private bool isTurn;
  
 	// Use this for initialization
 	new void Start () {
@@ -22,6 +23,7 @@ public class AxePhantom : Enemy {
 
 	// Allow the enemy to act freely
 	private void ActFree() {
+		Debug.Log(curState);
 		if(curHP == 0) {
 			curHP = -1; // Don't go into this if statement again
 			timer.resetWait();
@@ -45,27 +47,28 @@ public class AxePhantom : Enemy {
 	override public void ActIdle() {
 
 		// Wait a moment before turning around
-		if(transform.localPosition.x > origin.x + foe.walkDist/2){
+		if(transform.localPosition.x > origin.x + foe.walkDist/2 && transform.localScale.x < 0){
+			isTurn = true;
 			if(timer.WaitForXFrames(Random.Range(55,75))){
 				transform.localScale = new Vector2(flipScale, flipScale);
-				transform.localPosition = 
-					new Vector2(origin.x + foe.walkDist/2, transform.localPosition.y);
+				isTurn = false;
 			}
 		}
-		else if(transform.localPosition.x < -(origin.x + foe.walkDist/2)) {
+		else if(transform.localPosition.x < origin.x - foe.walkDist/2 && transform.localScale.x > 0) {
+			isTurn = true;
 			if(timer.WaitForXFrames(Random.Range(55,75))){
 				transform.localScale = new Vector2(-flipScale, flipScale);
-				transform.localPosition = 
-					new Vector2(-(origin.x + foe.walkDist/2), transform.localPosition.y);
+				isTurn = false;
 			}
 		}
 
+
 		// Walk to left
-		else if(transform.localScale.x > 0){
+		if(transform.localScale.x > 0 && !isTurn){
 			transform.Translate(-foe.walkSpd * Time.deltaTime, 0, 0);
 		}
 		// Walk to right
-		else {
+		else if (!isTurn){
 			transform.Translate(foe.walkSpd * Time.deltaTime, 0, 0);
 		}
 
@@ -76,6 +79,13 @@ public class AxePhantom : Enemy {
 	// Handles AI for enemy when player is detected
 	override public void Agro() {
 		
+		// Stop being agro if player is too far away
+		float dist = Vector2.Distance(player.transform.localPosition, transform.localPosition);
+		if(dist > foe.detectRad * 2) {
+			ChangeState(States.Undected);
+			timer.resetWait();
+		}
+
 		// Back away from player slowly if enemy is in cooldown
 		if(cooldown > 0){
 			if(timer.WaitForXFrames(cooldown))

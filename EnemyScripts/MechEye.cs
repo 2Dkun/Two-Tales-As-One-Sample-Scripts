@@ -9,6 +9,7 @@ public class MechEye : Enemy {
 	private HitBox strikeBox = new HitBox();
     private Vector3 oldSpot, newSpot;
 	public float amp;
+	private bool isTurn;
  
 	// Use this for initialization
 	new void Start () {
@@ -42,23 +43,23 @@ public class MechEye : Enemy {
 	// Handles AI for enemy when player is not detected
 	override public void ActIdle() {
 		// Wait a moment before turning around
-		if(transform.localPosition.x > origin.x + foe.walkDist/2){
+		if(transform.localPosition.x > origin.x + foe.walkDist/2 && transform.localScale.x < 0){
+			isTurn = true;
 			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
 			if(timer.WaitForXFrames(Random.Range(55,75))){
 				transform.localScale = new Vector2(flipScale, flipScale);
-				transform.localPosition = 
-					new Vector2(origin.x + foe.walkDist/2, transform.localPosition.y);
+				isTurn = false;
 				// Find new spot
 				newSpot.x = -(origin.x + foe.walkDist/2);
 				newSpot.y = origin.y + Random.Range(-1, 1);	
 			}
 		}
-		else if(transform.localPosition.x < -(origin.x + foe.walkDist/2)) {
+		else if(transform.localPosition.x < origin.x - foe.walkDist/2 && transform.localScale.x > 0) {
+			isTurn = true;
 			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
 			if(timer.WaitForXFrames(Random.Range(55,75))){
 				transform.localScale = new Vector2(-flipScale, flipScale);
-				transform.localPosition = 
-					new Vector2(-(origin.x + foe.walkDist/2), transform.localPosition.y);
+				isTurn = false;
 				// Find new spot
 				newSpot.x = origin.x + foe.walkDist/2;
 				newSpot.y = origin.y + Random.Range(-1, 1);
@@ -66,12 +67,12 @@ public class MechEye : Enemy {
 		}
 
 		// Move to left
-		else if(transform.localScale.x > 0){
+		if(transform.localScale.x > 0 && !isTurn){
 			transform.Translate(-foe.walkSpd * Time.deltaTime, 
 				Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
 		}
 		// Move to right
-		else {
+		else if(!isTurn){
 			transform.Translate(foe.walkSpd * Time.deltaTime, 
 				Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
 		}
@@ -82,6 +83,12 @@ public class MechEye : Enemy {
 
 	// Handles AI for enemy when player is detected
 	override public void Agro() {
+		// Stop being agro if player is too far away
+		float dist = Vector2.Distance(player.transform.localPosition, transform.localPosition);
+		if(dist > foe.detectRad * 2) {
+			ChangeState(States.Undected);
+		}
+
 		// Back away from player slowly if enemy is in cooldown
 		if(cooldown > 0){
 			if(timer.WaitForXFrames(cooldown))
@@ -93,11 +100,11 @@ public class MechEye : Enemy {
 				// Move up and away from player
 				if(transform.localPosition.x > player.transform.localPosition.x){
 					transform.localScale = new Vector2(flipScale, flipScale);
-					transform.Translate(foe.walkSpd * Time.deltaTime, foe.dashSpd * Time.deltaTime, 0);
+					transform.Translate(foe.dashSpd * Time.deltaTime, foe.walkSpd * Time.deltaTime, 0);
 				}
 				else {
 					transform.localScale = new Vector2(-flipScale, flipScale);
-					transform.Translate(-foe.walkSpd * Time.deltaTime, foe.dashSpd * Time.deltaTime, 0);
+					transform.Translate(-foe.dashSpd * Time.deltaTime, foe.walkSpd * Time.deltaTime, 0);
 				}
 			}
 		}
