@@ -8,8 +8,13 @@ public class DungeonManager : MonoBehaviour {
 	public GameObject[] enemies;
 	private FrameCounter frameCounter;
 
-	public GameObject[] groundPoints;
+	public GameObject ground;
+	private GameObject[] groundPoints;
 	private Vector3 playerPos;
+
+	void Awake() {
+		Application.targetFrameRate = 60;
+	}
 
 	// Use this for initialization
 	void Start () {
@@ -17,10 +22,13 @@ public class DungeonManager : MonoBehaviour {
 			enemies[i].SendMessage("Start");
 		}
 
-		System.Array.Sort(groundPoints, GroundCompare);
-		for(int i = 0; i < 3; i++){
-		//	Debug.Log(groundPoints[i].transform.position.x);
+		// Treat all children of ground as ground points
+		groundPoints = new GameObject[ground.transform.childCount];
+		for(int i = 0; i < groundPoints.Length; i++) {
+			groundPoints[i] = ground.transform.GetChild(i).gameObject;
 		}
+		// Sort children
+		System.Array.Sort(groundPoints, GroundCompare);
 	}
 	
 	// Update is called once per frame
@@ -32,34 +40,7 @@ public class DungeonManager : MonoBehaviour {
 		}
 		player.GetComponent<Player>().ControlPlayer();
 
-		// Make sure player is in bounds
-		Vector3 curPos = player.transform.position;
-		if(playerPos != curPos){
-			// Find the two points the player is between
-			for(int i = 0; i < groundPoints.Length-1; i++){
-				Vector3 pointA = groundPoints[i].transform.position;
-				Vector3 pointB = groundPoints[i+1].transform.position;
-				if(pointA.x < curPos.x){
-					if(pointB.x >= curPos.x){
-						playerPos.y = player.transform.position.y;
-						// Moved left
-						if(playerPos.x > curPos.x && pointA.y > curPos.y){
-							player.transform.position = playerPos;
-						}
-						// Moved right
-						else if(playerPos.x < curPos.x && pointB.y > curPos.y){
-							player.transform.position = playerPos;
-						}
-						else{
-							float newGround = Mathf.Max(pointA.y, pointB.y);
-							player.GetComponent<Player>().UpdateGround(newGround);
-						}
-					}
-				}
-			}
-			playerPos = player.transform.position;
-		}
-
+		KeepPlayerInBounds();
 
 
 		// Check if enemy has detected player then check if attacked
@@ -93,5 +74,36 @@ public class DungeonManager : MonoBehaviour {
 		float xa = a.transform.position.x;
         float xb = b.transform.position.x;
         return xa.CompareTo(xb);
+	}
+
+	// Make sure player is in bounds
+	private void KeepPlayerInBounds() {
+		Vector3 curPos = player.transform.position;
+		if(playerPos != curPos){
+			// Find the two points the player is between
+			for(int i = 0; i < groundPoints.Length-1; i++){
+				Vector3 pointA = groundPoints[i].transform.position;
+				Vector3 pointB = groundPoints[i+1].transform.position;
+				if(pointA.x < curPos.x){
+					if(pointB.x >= curPos.x){
+						playerPos.y = player.transform.position.y;
+						// Moved left
+						if(playerPos.x > curPos.x && pointA.y > curPos.y){
+							player.transform.position = playerPos;
+						}
+						// Moved right
+						else if(playerPos.x < curPos.x && pointB.y > curPos.y){
+							player.transform.position = playerPos;
+						}
+						else{
+							float newGround = Mathf.Max(pointA.y, pointB.y);
+							player.GetComponent<Player>().UpdateGround(newGround);
+						}
+					}
+				}
+			}
+			playerPos = player.transform.position;
+		}
+
 	}
 }
