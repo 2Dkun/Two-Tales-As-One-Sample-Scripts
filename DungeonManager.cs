@@ -10,7 +10,8 @@ public class DungeonManager : MonoBehaviour {
 
 	public GameObject ground;
 	private GameObject[] groundPoints;
-	private Vector3 playerPos;
+	private Vector3 prevPlayPos;
+	private Vector3[] prevFoePos;
 
 	void Awake() {
 		Application.targetFrameRate = 60;
@@ -18,8 +19,10 @@ public class DungeonManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		prevFoePos = new Vector3[enemies.Length];
 		for(int i = 0; i < enemies.Length; i++){
 			enemies[i].SendMessage("Start");
+			prevFoePos[i] = enemies[i].transform.localPosition;
 		}
 
 		// Treat all children of ground as ground points
@@ -35,12 +38,19 @@ public class DungeonManager : MonoBehaviour {
 	void Update () {
 		// Allow all entities to act
 		for(int i = 0; i < enemies.Length; i++){
-			if(enemies[i])
-				enemies[i].SendMessage("ActFree");
+			if(enemies[i]){
+				Vector3 playerPos = player.transform.localPosition;
+				Vector3 enemyPos = enemies[i].transform.localPosition;
+				float dist = Vector3.Distance(playerPos, enemyPos);
+				if(dist <= Constants.AWAKE_DIST) {
+					enemies[i].SendMessage("ActFree");
+					KeepInBounds(enemies[i], ref prevFoePos[i]);
+				}
+			}
 		}
 		player.GetComponent<Player>().ControlPlayer();
-
-		KeepPlayerInBounds();
+		KeepInBounds(player, ref prevPlayPos);
+		
 
 
 		// Check if enemy has detected player then check if attacked
@@ -76,34 +86,32 @@ public class DungeonManager : MonoBehaviour {
         return xa.CompareTo(xb);
 	}
 
-	// Make sure player is in bounds
-	private void KeepPlayerInBounds() {
-		Vector3 curPos = player.transform.position;
-		if(playerPos != curPos){
-			// Find the two points the player is between
-			for(int i = 0; i < groundPoints.Length-1; i++){
-				Vector3 pointA = groundPoints[i].transform.position;
-				Vector3 pointB = groundPoints[i+1].transform.position;
-				if(pointA.x < curPos.x){
-					if(pointB.x >= curPos.x){
-						playerPos.y = player.transform.position.y;
-						// Moved left
-						if(playerPos.x > curPos.x && pointA.y > curPos.y){
-							player.transform.position = playerPos;
-						}
-						// Moved right
-						else if(playerPos.x < curPos.x && pointB.y > curPos.y){
-							player.transform.position = playerPos;
-						}
-						else{
-							float newGround = Mathf.Max(pointA.y, pointB.y);
-							player.GetComponent<Player>().UpdateGround(newGround);
-						}
+	// Make sure object is in bounds
+	private void KeepInBounds(GameObject obj, ref Vector3 prevPos) {
+		Vector3 curPos = obj.transform.position;
+		// Find the two points the object is between
+		for(int i = 0; i < groundPoints.Length-1; i++){
+			Vector3 pointA = groundPoints[i].transform.position;
+			Vector3 pointB = groundPoints[i+1].transform.position;
+			if(pointA.x < curPos.x){
+				if(pointB.x >= curPos.x){
+					prevPos.y = obj.transform.position.y;
+					// Moved left
+					if(prevPos.x > curPos.x && pointA.y > curPos.y){
+						obj.transform.position = prevPos;
+					}
+					// Moved right
+					else if(prevPos.x < curPos.x && pointB.y > curPos.y){
+						obj.transform.position = prevPos;
+					}
+					else if(obj == player){
+						float newGround = Mathf.Max(pointA.y, pointB.y);
+						player.GetComponent<Player>().UpdateGround(newGround);
 					}
 				}
 			}
-			playerPos = player.transform.position;
 		}
-
+		prevPos = obj.transform.position;
 	}
+
 }
