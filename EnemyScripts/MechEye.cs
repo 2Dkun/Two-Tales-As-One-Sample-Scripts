@@ -8,7 +8,7 @@ public class MechEye : Enemy {
 	public float strikeDist;
 	private HitBox strikeBox = new HitBox();
     private Vector3 oldSpot, newSpot;
-	public float amp;
+	public float amp, wavelen;
 	private bool isTurn;
  
 	// Use this for initialization
@@ -45,7 +45,7 @@ public class MechEye : Enemy {
 		// Wait a moment before turning around
 		if(transform.localPosition.x > origin.x + foe.walkDist/2 && transform.localScale.x < 0){
 			isTurn = true;
-			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
+			transform.Translate(0, Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp, 0);
 			if(timer.WaitForXFrames(Random.Range(55,75))){
 				transform.localScale = new Vector2(flipScale, flipScale);
 				isTurn = false;
@@ -56,7 +56,7 @@ public class MechEye : Enemy {
 		}
 		else if(transform.localPosition.x < origin.x - foe.walkDist/2 && transform.localScale.x > 0) {
 			isTurn = true;
-			transform.Translate(0, Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
+			transform.Translate(0, Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp, 0);
 			if(timer.WaitForXFrames(Random.Range(55,75))){
 				transform.localScale = new Vector2(-flipScale, flipScale);
 				isTurn = false;
@@ -69,12 +69,12 @@ public class MechEye : Enemy {
 		// Move to left
 		if(transform.localScale.x > 0 && !isTurn){
 			transform.Translate(-foe.walkSpd * Time.deltaTime, 
-				Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
+				Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp, 0);
 		}
 		// Move to right
 		else if(!isTurn){
 			transform.Translate(foe.walkSpd * Time.deltaTime, 
-				Mathf.Sin(transform.localPosition.x) * Time.deltaTime / amp, 0);
+				Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp, 0);
 		}
 
 		// Try to detect player

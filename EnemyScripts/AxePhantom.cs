@@ -23,7 +23,6 @@ public class AxePhantom : Enemy {
 
 	// Allow the enemy to act freely
 	private void ActFree() {
-		Debug.Log(curState);
 		if(curHP == 0) {
 			curHP = -1; // Don't go into this if statement again
 			timer.resetWait();
