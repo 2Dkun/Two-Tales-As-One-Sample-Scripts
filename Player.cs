@@ -163,12 +163,6 @@ public class Player : MonoBehaviour {
 
 	// Perform current attack
 	private bool Attack() {
-
-		// Move the player based on attack velocity
-		float playDir = transform.localScale.x/flipScale;
- 		player.transform.Translate(playDir * curAttack.xVel * Time.deltaTime, 
-		 	curAttack.yVel * Time.deltaTime, 0);
-
 		// Play attack animation
 		player.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
 		
@@ -207,7 +201,6 @@ public class Player : MonoBehaviour {
 						// Tell the enemy that it has been attacked
 						if(isHit){
 							foes[i].SendMessage("Attacked", curAttack.power);
-							Debug.Log("okdoki");
 						}
 					}
 				}
@@ -234,6 +227,10 @@ public class Player : MonoBehaviour {
 				}
 			}
 
+			// Move the player based on attack velocity
+			float playDir = transform.localScale.x/flipScale;
+			player.transform.Translate(playDir * curAttack.xVel * Time.deltaTime, 
+				curAttack.yVel * Time.deltaTime, 0);
 		}
 		else if(curState == States.Parry) {
 			// curState = States.Attack;

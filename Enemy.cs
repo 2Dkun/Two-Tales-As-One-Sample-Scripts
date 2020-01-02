@@ -183,6 +183,10 @@ public abstract class Enemy: MonoBehaviour {
 				player.SendMessage("Attacked", a.power);
 				hitPlayer = true;
 			}
+
+			// Move the enemy based on attack velocity
+			float foeDir = gameObject.transform.localScale.x/flipScale;
+ 			gameObject.transform.Translate(foeDir * a.xVel * Time.deltaTime, a.yVel * Time.deltaTime, 0);
 		}
 		// Enable attack hitbox for other classes to reference
 		else if(timer.curFrame() < a.startup && timer.curFrame() >= a.startup - 1){
