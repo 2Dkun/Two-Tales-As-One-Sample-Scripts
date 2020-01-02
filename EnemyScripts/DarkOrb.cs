@@ -7,6 +7,8 @@ public class DarkOrb : Enemy {
     // Enemy child specific variables
     public GameObject lancer;
     public int damage;
+	public float amp, wavelen;
+	public float yThres;
  
 	// Use this for initialization
 	new void Start () {
@@ -65,7 +67,10 @@ public class DarkOrb : Enemy {
 			transform.Translate(foe.dashSpd * Time.deltaTime, 0, 0);
 		}
 		// MOVE VERTICALLY TOWARDS PLAYER
-		if(transform.localPosition.y > player.transform.localPosition.y){
+		if(yThres >= Mathf.Abs(transform.localPosition.y - player.transform.localPosition.y)) {
+			transform.Translate(0, Mathf.Sin(Time.frameCount * wavelen) * Time.deltaTime * amp  , 0);
+		}
+		else if(transform.localPosition.y > player.transform.localPosition.y){
 			transform.Translate(0, -foe.dashSpd * Time.deltaTime,  0);
 		}
 		else if (transform.localPosition.y < player.transform.localPosition.y){
@@ -73,5 +78,12 @@ public class DarkOrb : Enemy {
 		}
 
 		
+	}
+
+	new public void Attacked(int damage) {
+		if(!isHurt && curState != States.KO && damage != 0){
+			base.Attacked(damage);
+			lancer.GetComponent<Lanne>().OrbAttacked();
+		}
 	}
 }
