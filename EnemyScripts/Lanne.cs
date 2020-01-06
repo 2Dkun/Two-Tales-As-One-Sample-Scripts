@@ -52,8 +52,26 @@ public class Lanne : Enemy {
 
 	// Handles AI for enemy when player is not detected
 	override public void ActIdle() {
+		// Walk away from player if in cooldown
+		if(cooldown > 0) {
+			if(timer.WaitForXFrames(cooldown))
+				cooldown = 0;
+			else {
+				// PLAY WALK ANIM
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.walk[0];
+
+				if(transform.localPosition.x > player.transform.localPosition.x){
+					transform.localScale = new Vector2(flipScale, flipScale);
+					transform.Translate(foe.walkSpd * Time.deltaTime, 0, 0);
+				}
+				else {
+					transform.localScale = new Vector2(-flipScale, flipScale);
+					transform.Translate(-foe.walkSpd * Time.deltaTime, 0, 0);
+				}
+			}
+		}
 		// If orbs are attacked and not in a middle of a move, then go for LUNGE
-		if(orbHurt && curState != States.Attack) {
+		else if(orbHurt && curState != States.Attack) {
 			orbHurt = false;
 			curAtk = foe.atk[0];
 			ChangeState(States.Attack);
@@ -63,7 +81,6 @@ public class Lanne : Enemy {
 			// See if player is close enough to attack
 			float dist = Vector2.Distance(player.transform.localPosition, transform.localPosition);
 			if(strikeDist >= dist){
-				Debug.Log(dist);
 				// Randomly pick an action
 				int action = Random.Range(0, 100);
 				if(action < 30) 			curPatt = pattern.APPROACH;
@@ -80,11 +97,11 @@ public class Lanne : Enemy {
 				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.walk[0];
 
 				if(transform.localPosition.x > player.transform.localPosition.x){
-					transform.localScale = new Vector2(-flipScale, flipScale);
+					transform.localScale = new Vector2(flipScale, flipScale);
 					transform.Translate(-foe.walkSpd * Time.deltaTime, 0, 0);
 				}
 				else {
-					transform.localScale = new Vector2(flipScale, flipScale);
+					transform.localScale = new Vector2(-flipScale, flipScale);
 					transform.Translate(foe.walkSpd * Time.deltaTime, 0, 0);
 				}
 			}
@@ -136,11 +153,11 @@ public class Lanne : Enemy {
 				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.walk[0];
 
 				if(transform.localPosition.x > player.transform.localPosition.x){
-					transform.localScale = new Vector2(-flipScale * moveDir, flipScale);
+					transform.localScale = new Vector2(flipScale, flipScale);
 					transform.Translate(foe.walkSpd * Time.deltaTime * moveDir, 0, 0);
 				}
 				else {
-					transform.localScale = new Vector2(flipScale * moveDir, flipScale);
+					transform.localScale = new Vector2(-flipScale, flipScale);
 					transform.Translate(-foe.walkSpd * Time.deltaTime * moveDir, 0, 0);
 				}
 			}
