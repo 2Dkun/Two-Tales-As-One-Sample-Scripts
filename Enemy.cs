@@ -185,7 +185,7 @@ public abstract class Enemy: MonoBehaviour {
 			}
 
 			// Move the enemy based on attack velocity
-			float foeDir = gameObject.transform.localScale.x/flipScale;
+			float foeDir = -gameObject.transform.localScale.x/flipScale;
  			gameObject.transform.Translate(foeDir * a.xVel * Time.deltaTime, a.yVel * Time.deltaTime, 0);
 		}
 		// Enable attack hitbox for other classes to reference
