@@ -52,6 +52,7 @@ public class Player : MonoBehaviour {
 
 	// Other character data
 	public GameObject player;
+	private GameObject[] foes;
 	public HitBox hurtBox;
 	private PlayerClass curClass;
 	private int curHP, curMP;
@@ -59,18 +60,21 @@ public class Player : MonoBehaviour {
 	private float xVel, yVel;
 	private float flipScale;
 	private Attack curAttack;
-	private FrameCounter timer;
+	private FrameCounter timer, subTimer;
+	private int iframes;
 
 	// Player Objects
 	public GameObject playerHUD;
 
 	// TEMP VARS
 	public float minHeight; // detect ground better in future
-	public GameObject[] foes; // place this info in dungeon manager and recieve it from there
+	 // place this info in dungeon manager and recieve it from there
 
 	// Initialize variables
     public void Start() {
 		timer = new FrameCounter();
+		subTimer = new FrameCounter();
+		foes = gameObject.GetComponent<DungeonManager>().enemies;
 
 		curHP = this.maxHP;
 		curMP = this.maxMP;
@@ -107,7 +111,32 @@ public class Player : MonoBehaviour {
 
 	// Allow the user to have full control over the player
 	public void ControlPlayer(){
-		Debug.Log(curState);
+		//Debug.Log(curState);
+
+		// Update SWAP meter
+		if(curSP < 100) {
+			curSP += Time.deltaTime * curClass.swapRate;
+			if(curSP > 100) {
+				curSP = 100;
+			}
+			playerHUD.GetComponent<HUDManager>().UpdateSP(curSP/100);		
+		}
+		// Update iframes
+		if(iframes > 0) {
+			// Handle iframe animation
+			if(subTimer.WaitForXFrames(iframes)){ // 25 is arbitrary 
+				subTimer.resetWait();
+				iframes = 0;
+			}
+			else{
+				if(subTimer.curFrame() % 3 == 1){
+					player.GetComponent<SpriteRenderer>().color = new Color(1,1,1,0);
+				} else{
+					player.GetComponent<SpriteRenderer>().color = new Color(1,1,1,1);
+				}
+			}
+		}
+
 		// See if player made any skill inputs
 		if(curClass == this.shield){
 			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
@@ -134,12 +163,6 @@ public class Player : MonoBehaviour {
 
 	// Perform current attack
 	private bool Attack() {
-
-		// Move the player based on attack velocity
-		float playDir = transform.localScale.x/flipScale;
- 		player.transform.Translate(playDir * curAttack.xVel * Time.deltaTime, 
-		 	curAttack.yVel * Time.deltaTime, 0);
-
 		// Play attack animation
 		player.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
 		
@@ -171,11 +194,10 @@ public class Player : MonoBehaviour {
 			if(!curAttack.hitBox.IsEqual(new HitBox())){
 				for(int i = 0; i < foes.Length; i++){
 					// Check if enemy exists
-					if(foes[i] != null) {
+					if(foes[i] != null) {		
 						HitBox foeHurt = new HitBox();
 						foes[i].SendMessage("GetHurtBox", foeHurt);
 						bool isHit = IsHitTarget(curAttack.hitBox, player, foeHurt, foes[i]);
-
 						// Tell the enemy that it has been attacked
 						if(isHit){
 							foes[i].SendMessage("Attacked", curAttack.power);
@@ -193,6 +215,7 @@ public class Player : MonoBehaviour {
 						foes[i].SendMessage("GetCurAtk", foeHit);
 						if(!foeHit.IsEqual(new HitBox())){
 							bool isParry = IsHitTarget(curAttack.hitBox, player, foeHit, foes[i]);
+							
 
 							if(isParry){
 								curState = States.Parry;
@@ -204,6 +227,10 @@ public class Player : MonoBehaviour {
 				}
 			}
 
+			// Move the player based on attack velocity
+			float playDir = transform.localScale.x/flipScale;
+			player.transform.Translate(playDir * curAttack.xVel * Time.deltaTime, 
+				curAttack.yVel * Time.deltaTime, 0);
 		}
 		else if(curState == States.Parry) {
 			// curState = States.Attack;
@@ -448,9 +475,12 @@ public class Player : MonoBehaviour {
 	
 	// Apply hurt process if player got hit by an attack
 	public void Attacked(int damage){
-		if(curState != States.Parry && curState != States.Block && damage > 0){
+		if(curState != States.Parry && curState != States.Block 
+			&& curState != States.Hurt && damage > 0 && iframes <= 0){
+
 			curHP -= damage;
 			if(curHP < 0)	curHP = 0;
+			iframes = Constants.IFRAMES;
 
 			if(curState == States.Attack || curState == States.Swap)
 				curState = prevState;

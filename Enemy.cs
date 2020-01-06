@@ -183,6 +183,10 @@ public abstract class Enemy: MonoBehaviour {
 				player.SendMessage("Attacked", a.power);
 				hitPlayer = true;
 			}
+
+			// Move the enemy based on attack velocity
+			float foeDir = -gameObject.transform.localScale.x/flipScale;
+ 			gameObject.transform.Translate(foeDir * a.xVel * Time.deltaTime, a.yVel * Time.deltaTime, 0);
 		}
 		// Enable attack hitbox for other classes to reference
 		else if(timer.curFrame() < a.startup && timer.curFrame() >= a.startup - 1){
@@ -202,6 +206,11 @@ public abstract class Enemy: MonoBehaviour {
 		curState = s;
 	}
 
+	// Change the active hitbox
+	public void SetActiveHit(HitBox h){
+		activeHit = h;
+	}
+
 	/* 
 		Functions to be called by other scripts 
 	*/
@@ -209,7 +218,7 @@ public abstract class Enemy: MonoBehaviour {
     // Apply hurt process if player got hit by an attack
     public void Attacked(int damage) {
         //if(curState != States.Hurt){
-		if(!isHurt && curState != States.KO && damage > 0){
+		if(!isHurt && curState != States.KO && damage != 0){
 			if(damage == Constants.PARRY_KO) {
 				if(curState == States.Stunned)
 					damage = Constants.INSTANT_KO;
@@ -229,11 +238,12 @@ public abstract class Enemy: MonoBehaviour {
 
 	// Put enemy into parried state
 	public void Parried() {
-		curAtk.anim.ResetAnim();
-		cooldown = curAtk.cooldown;
-		activeHit = null;
-		timer.resetWait();
-		//if()
+		if(curAtk != null){
+			curAtk.anim.ResetAnim();
+			cooldown = curAtk.cooldown;
+			activeHit = null;
+			timer.resetWait();
+		}
 		curState = States.Grounded;
 		ChangeState(States.Stunned);
 	}
@@ -253,6 +263,12 @@ public abstract class Enemy: MonoBehaviour {
 		foeHurt.Clone(hurtbox);
 	}
 
+/*
+	// Prevent the enemy from 
+	public void ForceIdle() {
+
+	}
+*/
 
 	/*
 		Getter/Setter functions
