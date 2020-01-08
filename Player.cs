@@ -66,6 +66,7 @@ public class Player : MonoBehaviour {
 
 	// Player Objects
 	public GameObject playerHUD;
+	public GameObject ghost;
 
 	// TEMP VARS
 	public float minHeight; // detect ground better in future
@@ -84,22 +85,6 @@ public class Player : MonoBehaviour {
 		prevState = States.Grounded;
 		flipScale = Mathf.Abs(player.transform.localScale.x);
 	}
-
-	// TESTING PURPOSES REMOVE ME LATER
-	/*
-	public void Update(){
-		ControlPlayer();
-
-		// Update SWAP meter
-		if(curSP < 100) {
-			curSP += Time.deltaTime * curClass.swapRate;
-			if(curSP > 100) {
-				curSP = 100;
-			}
-			playerHUD.GetComponent<HUDManager>().UpdateSP(curSP/100);		
-		}
-	}
-	*/
 
 	public void UpdateGround(float newHeight){
 		minHeight = newHeight;
@@ -289,6 +274,9 @@ public class Player : MonoBehaviour {
 				ChangeState(States.Swap);
 				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
 				timer.resetWait();
+				ghost.GetComponent<Ghost>().Swapping();
+				// Stop enemies from moving
+				gameObject.GetComponent<DungeonManager>().PauseGame();
 			}
 			else {
 				// IMPLEMENT STRUGGLE ANIMATION LATER
@@ -335,6 +323,7 @@ public class Player : MonoBehaviour {
 				ChangeState(States.Swap);
 				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
 				timer.resetWait();
+				ghost.GetComponent<Ghost>().Swapping();
 				// Stop enemies from moving
 				gameObject.GetComponent<DungeonManager>().PauseGame();
 			}
@@ -453,6 +442,7 @@ public class Player : MonoBehaviour {
 			}
 			ChangeState(prevState);
 			gameObject.GetComponent<DungeonManager>().ContinueGame();
+			ghost.GetComponent<Ghost>().Swap();
 		}
 		// Otherwise continue to fade the character
 		else{
