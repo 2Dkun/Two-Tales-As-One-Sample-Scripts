@@ -234,6 +234,7 @@ public class Player : MonoBehaviour {
 			curSP = 0;
 
 			playerHUD.GetComponent<HUDManager>().SwapChar();
+			ghost.GetComponent<Ghost>().Swap();
 		}
 		/*
 		else if(curState == States.Parry) {
@@ -274,7 +275,7 @@ public class Player : MonoBehaviour {
 				ChangeState(States.Swap);
 				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
 				timer.resetWait();
-				ghost.GetComponent<Ghost>().Swapping();
+				ghost.GetComponent<Ghost>().Swap();
 				// Stop enemies from moving
 				gameObject.GetComponent<DungeonManager>().PauseGame();
 			}
@@ -323,7 +324,7 @@ public class Player : MonoBehaviour {
 				ChangeState(States.Swap);
 				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
 				timer.resetWait();
-				ghost.GetComponent<Ghost>().Swapping();
+				ghost.GetComponent<Ghost>().Swap();
 				// Stop enemies from moving
 				gameObject.GetComponent<DungeonManager>().PauseGame();
 			}
@@ -432,7 +433,8 @@ public class Player : MonoBehaviour {
 			else					curClass = sword;
 			curSP = 0;
 
-			playerHUD.GetComponent<HUDManager>().SwapChar();		
+			playerHUD.GetComponent<HUDManager>().SwapChar();
+			ghost.GetComponent<Ghost>().SwapChar();		
 
 			if(prevState == States.Airborne) {
 				if(xVel > 0)		this.xVel = curClass.airSpd;
@@ -442,7 +444,6 @@ public class Player : MonoBehaviour {
 			}
 			ChangeState(prevState);
 			gameObject.GetComponent<DungeonManager>().ContinueGame();
-			ghost.GetComponent<Ghost>().Swap();
 		}
 		// Otherwise continue to fade the character
 		else{

@@ -49,7 +49,6 @@ public class Ghost : MonoBehaviour {
                 float i = GetComponent<SpriteRenderer>().color.a - Time.deltaTime * 1.5f;
                 if(i < 0) i = 0;
                 GetComponent<SpriteRenderer>().color = new Color(1,1,1,i);
-                Debug.Log(i);
                 break;
             case States.IDLE:
                 // IDLE ANIMATION
@@ -75,17 +74,18 @@ public class Ghost : MonoBehaviour {
 
         
     }
+    
 
     // Functions to be called by other scripts 
     public void Swap() {
+        curState = States.SWAP;
+    }
+    public void SwapChar() {
         if(curGhost == shield)      curGhost = sword;
         else                        curGhost = shield;
 
         GetComponent<SpriteRenderer>().color = new Color(1,1,1,baseAlpha);
         curState = States.IDLE;
-    }
-    public void Swapping() {
-        curState = States.SWAP;
     }
     public void Hurt() {}
 
