@@ -39,6 +39,7 @@ public class Player : MonoBehaviour {
 		public float airAccel, swapRate;
 		public Attack atk, cAtk;
 		public Attack[] skills;
+		public Attack swapAtk;
 	}
 
 	// Base character data
@@ -232,10 +233,28 @@ public class Player : MonoBehaviour {
 			player.transform.Translate(playDir * curAttack.xVel * Time.deltaTime, 
 				curAttack.yVel * Time.deltaTime, 0);
 		}
+		else if(Input.GetKey(KeyCode.W) && curSP >= 100) {
+			// Reset previous attack
+			curAttack.anim.ResetAnim();
+			timer.resetWait();
+
+			// Set current attack as Skill1
+			curAttack = curClass.swapAtk;
+			curMP -= curClass.swapAtk.mpCost;
+			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
+
+			// Apply the changes for swapping character
+			if(curClass == sword)	curClass = shield;
+			else					curClass = sword;
+			curSP = 0;
+
+			playerHUD.GetComponent<HUDManager>().SwapChar();
+		}
+		/*
 		else if(curState == States.Parry) {
 			// curState = States.Attack;
 		}
-
+		*/
 			
 		// Allow for movement if the player is airborne
 		if(prevState == States.Airborne){
@@ -316,6 +335,8 @@ public class Player : MonoBehaviour {
 				ChangeState(States.Swap);
 				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
 				timer.resetWait();
+				// Stop enemies from moving
+				gameObject.GetComponent<DungeonManager>().PauseGame();
 			}
 			else {
 				// IMPLEMENT STRUGGLE ANIMATION LATER
@@ -431,6 +452,7 @@ public class Player : MonoBehaviour {
 				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.jump[0];
 			}
 			ChangeState(prevState);
+			gameObject.GetComponent<DungeonManager>().ContinueGame();
 		}
 		// Otherwise continue to fade the character
 		else{

@@ -12,6 +12,7 @@ public class DungeonManager : MonoBehaviour {
 	private GameObject[] groundPoints;
 	private Vector3 prevPlayPos;
 	private Vector3[] prevFoePos;
+	private bool isPause;
 
 	void Awake() {
 		Application.targetFrameRate = 60;
@@ -36,21 +37,22 @@ public class DungeonManager : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		// Allow all entities to act
-		for(int i = 0; i < enemies.Length; i++){
-			if(enemies[i]){
-				Vector3 playerPos = player.transform.localPosition;
-				Vector3 enemyPos = enemies[i].transform.localPosition;
-				float dist = Vector3.Distance(playerPos, enemyPos);
-				if(dist <= Constants.AWAKE_DIST) {
-					enemies[i].SendMessage("ActFree");
-					KeepInBounds(enemies[i], ref prevFoePos[i]);
+		if(!isPause){
+			// Allow all entities to act
+			for(int i = 0; i < enemies.Length; i++){
+				if(enemies[i]){
+					Vector3 playerPos = player.transform.localPosition;
+					Vector3 enemyPos = enemies[i].transform.localPosition;
+					float dist = Vector3.Distance(playerPos, enemyPos);
+					if(dist <= Constants.AWAKE_DIST) {
+						enemies[i].SendMessage("ActFree");
+						KeepInBounds(enemies[i], ref prevFoePos[i]);
+					}
 				}
 			}
 		}
 		player.GetComponent<Player>().ControlPlayer();
 		KeepInBounds(player, ref prevPlayPos);
-		
 
 
 		// Check if enemy has detected player then check if attacked
@@ -66,13 +68,6 @@ public class DungeonManager : MonoBehaviour {
 
 
 		// Else let all object act freely
-		
-		/* 
-		player.GetComponent<Player2>().FreeAct();
-
-		if (Input.GetKeyDown(KeyCode.P))
-			player.GetComponent<Player2>().Attacked(1);
-			*/
 
 	}
 
@@ -114,4 +109,7 @@ public class DungeonManager : MonoBehaviour {
 		prevPos = obj.transform.position;
 	}
 
+	// Prevetn/allow all objects to act freely
+	public void PauseGame() 	{ isPause = true; }
+	public void ContinueGame() { isPause = false; }
 }
