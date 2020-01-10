@@ -35,7 +35,8 @@ public class Player : MonoBehaviour {
 	[System.Serializable]
 	public class PlayerClass {
 		public Anims charAnims;
-		public float walkSpd, dashSpd, airSpd, jumpHeight, gravity;
+		public float walkSpd, dashSpd, airSpd;
+		public float jumpHeight, gravity, fallSpd;
 		public float airAccel, swapRate;
 		public Attack atk, cAtk;
 		public Attack[] skills;
@@ -458,7 +459,9 @@ public class Player : MonoBehaviour {
 	// Apply gravity to the player
     private void ApplyGravity(){
         this.yVel -= curClass.gravity * Time.deltaTime;
-        this.player.transform.Translate(this.xVel * Time.deltaTime, this.yVel, 0);
+        if(yVel < 0) yVel *= curClass.fallSpd;
+		this.player.transform.Translate(this.xVel * Time.deltaTime, this.yVel, 0);
+		Debug.Log(yVel);
     }
 
 	// Change player's current state and store it
