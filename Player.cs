@@ -124,28 +124,33 @@ public class Player : MonoBehaviour {
 			}
 		}
 
-		// See if player made any skill inputs
-		if(curClass == this.shield){
-			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
-			else if(Input.GetKey(KeyCode.K))		ParryStrike(shield.skills[1]);
-			else if(Input.GetKey(KeyCode.U))		BasicSkill(shield.skills[2]);
-		}
-		else{
-			if(Input.GetKey(KeyCode.J))				AnotherSwing(sword.skills[0], sword.skills[1]);
-			else if(Input.GetKey(KeyCode.U))		BasicSkill(sword.skills[2]);
+		if(!Input.GetKey(KeyCode.LeftShift)){
+			// See if player made any skill inputs
+			if(curClass == this.shield){
+				if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
+				else if(Input.GetKey(KeyCode.K))		ParryStrike(shield.skills[1]);
+				else if(Input.GetKey(KeyCode.U))		BasicSkill(shield.skills[2]);
+			}
+			else{
+				if(Input.GetKey(KeyCode.J))				AnotherSwing(sword.skills[0], sword.skills[1]);
+				else if(Input.GetKey(KeyCode.U))		BasicSkill(sword.skills[2]);
+			}
+
+			// Run through player state machine
+			switch(curState){
+				case States.Grounded:	MoveGrounded(); 								break;
+				case States.Airborne: 	MoveAirborne(); 								break;
+				case States.Swap:		Swap(); 										break;
+				case States.Attack:  	Attack();										break; 
+				case States.Parry: 		Attack();										break;
+				case States.Hurt:		ApplyHitstun(); 								break;
+				case States.Block:		Block(shield.skills[0], KeyCode.Semicolon); 	break;
+				default: 																break;
+			}
 		}
 
-		// Run through player state machine
-		switch(curState){
-			case States.Grounded:	MoveGrounded(); 								break;
-			case States.Airborne: 	MoveAirborne(); 								break;
-			case States.Swap:		Swap(); 										break;
-			case States.Attack:  	Attack();										break; 
-			case States.Parry: 		Attack();										break;
-			case States.Hurt:		ApplyHitstun(); 								break;
-			case States.Block:		Block(shield.skills[0], KeyCode.Semicolon); 	break;
-			default: 																break;
-		}
+		// Allow the ghost to act
+		ghost.GetComponent<Ghost>().ActFree();
 	}
 
 	// Perform current attack
@@ -461,7 +466,6 @@ public class Player : MonoBehaviour {
         this.yVel -= curClass.gravity * Time.deltaTime;
         if(yVel < 0) yVel *= curClass.fallSpd;
 		this.player.transform.Translate(this.xVel * Time.deltaTime, this.yVel, 0);
-		Debug.Log(yVel);
     }
 
 	// Change player's current state and store it
@@ -507,6 +511,11 @@ public class Player : MonoBehaviour {
 		}
 	}
 	
+	// Return the class that's not currently active
+	public PlayerClass GetGhost() {
+		if(curClass == sword)	return shield;
+		else					return sword;
+	}
 
 	// Allows players to use a skill with no unique traits
 	private void BasicSkill(Attack skill){
