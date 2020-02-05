@@ -13,6 +13,9 @@ public class Ghost : MonoBehaviour {
             - Attack (same)
             - Skills?
             - Return
+
+        TO DO:
+        - Attack state
     */
 
     [System.Serializable]
@@ -30,13 +33,16 @@ public class Ghost : MonoBehaviour {
     public GameObject player;
 	public float smoothTime = 0.3F;
 	public float xShift, yShift;
-    public float idleVel;
+    public float leniency, summonDist;
 
     // Other variables
     private GhostAnims curGhost;
+    private bool ctrlRdy;
 	private Vector3 velocity = Vector3.zero;
     private float flipScale;
     private float baseAlpha;
+    private Attack curAttack;
+    private bool isAttack;
 
     // Start is called before the first frame update
     void Start()
@@ -46,14 +52,55 @@ public class Ghost : MonoBehaviour {
         baseAlpha = GetComponent<SpriteRenderer>().color.a;
     }
 
+    public void ActFree(bool ctrlState) {
+        if (isAttack && !ctrlState) {
+            Attack(player.GetComponent<Player>());
+        }
+        else if (!ctrlState) { Float(); }
+        else if (!ctrlRdy) {
+            // Smoothly move the ghost towards the player
+            Vector3 newPos = player.transform.TransformPoint(new Vector3(summonDist, 0, 0));
+            transform.position = Vector3.SmoothDamp(transform.position, newPos, ref velocity, smoothTime);
+
+            // Start moving if same ground level as player
+            float heightDif = transform.localPosition.y - player.transform.localPosition.y;
+            if (Mathf.Abs(heightDif) <= leniency) {
+                ctrlRdy = true;
+            }
+        }
+        else {
+            Player ctrl = player.GetComponent<Player>();
+            Debug.Log("GHOST: " + ctrl.GetState());
+
+            switch (ctrl.GetState()) {
+                case Player.States.Airborne:
+                    ctrl.MoveAirborne(gameObject); break;
+                case Player.States.Grounded:
+                    ctrl.MoveGrounded(gameObject); break;
+                case Player.States.Swap:
+                    ctrl.UndoControl();
+                    break;
+                case Player.States.Attack:
+                    Attack(ctrl); break;
+                case Player.States.Parry:
+                    Attack(ctrl); break;
+                default:
+                    break;
+
+            }
+        }
+    }
+
     // Allows the ghost to act
-    public void ActFree() {
+    public void Float() {
+        /*
         if(Input.GetKeyDown(KeyCode.LeftShift))
             curState = States.MOVE;
         else if(Input.GetKeyUp(KeyCode.LeftShift))
             curState = States.IDLE;
+            */
 
-        switch(curState){
+        switch(curState) {
             case States.SWAP:   ActSwap();      break;
             case States.IDLE:   ActIdle();      break;
             case States.MOVE:   MoveGhost();    break; 
@@ -88,18 +135,28 @@ public class Ghost : MonoBehaviour {
         float i = GetComponent<SpriteRenderer>().color.a - Time.deltaTime * 1.5f;
         if(i < 0) i = 0;
         GetComponent<SpriteRenderer>().color = new Color(1,1,1,i);
+        Debug.Log("Asdasdasdas");
     }
     // Determines how ghost acts in idle state
     private void ActIdle() {
         MoveToPlayer();
+
+        Vector3 newPos = player.transform.TransformPoint(new Vector3(xShift, yShift, 0));
         // IDLE ANIMATION
-        if(Vector3.Distance(velocity, Vector3.zero) <= idleVel) {
+        if (Vector3.Distance(transform.position, newPos) <= leniency) {
             GetComponent<SpriteRenderer>().sprite = curGhost.idle[0];
         }
         //MOVE ANIMATION
         else{
            GetComponent<SpriteRenderer>().sprite = curGhost.move[0];
         }
+    }
+
+    private void Attack(Player ctrl) {
+        if (curAttack == null)  curAttack = ctrl.GetAttack();
+        isAttack = !ctrl.Attack(gameObject, curAttack);
+        if (!isAttack)  curAttack = null;
+        
     }
 
 
@@ -140,5 +197,8 @@ public class Ghost : MonoBehaviour {
         curState = States.IDLE;
     }
     public void Hurt() {}
+    public void UndoControl() {
+        ctrlRdy = false;
+    }
 
 }
