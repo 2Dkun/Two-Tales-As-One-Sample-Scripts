@@ -70,7 +70,7 @@ public class Ghost : MonoBehaviour {
         }
         else {
             Player ctrl = player.GetComponent<Player>();
-            Debug.Log("GHOST: " + ctrl.GetState());
+        //    Debug.Log("GHOST: " + ctrl.GetState());
 
             switch (ctrl.GetState()) {
                 case Player.States.Airborne:
@@ -135,7 +135,6 @@ public class Ghost : MonoBehaviour {
         float i = GetComponent<SpriteRenderer>().color.a - Time.deltaTime * 1.5f;
         if(i < 0) i = 0;
         GetComponent<SpriteRenderer>().color = new Color(1,1,1,i);
-        Debug.Log("Asdasdasdas");
     }
     // Determines how ghost acts in idle state
     private void ActIdle() {
@@ -156,7 +155,7 @@ public class Ghost : MonoBehaviour {
         if (curAttack == null)  curAttack = ctrl.GetAttack();
         isAttack = !ctrl.Attack(gameObject, curAttack);
         if (!isAttack)  curAttack = null;
-        
+        Debug.Log("G: " + isAttack);
     }
 
 

@@ -99,7 +99,7 @@ public class Player : MonoBehaviour {
 
 	// Allow the user to have full control over the player
 	public void ControlPlayer(){
-		Debug.Log("PLAYER "+ curState);
+	//	Debug.Log("PLAYER "+ curState);
 
 		// Update SWAP meter
 		if(curSP < 100) {
@@ -172,16 +172,16 @@ public class Player : MonoBehaviour {
 	// Perform current attack
 	public bool Attack(GameObject curPlayer, Attack curAttack) {
 		// Play attack animation
-		if (curPlayer.GetComponent<Player>() != null) {
-			Debug.Log(curState + " " + prevState);
-		}
 		curPlayer.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
-		
+
 		// See if the move has ended
-		if(timer.WaitForXFrames(curAttack.endlag)){ //endlag
+		FrameCounter timer = curAttack.timer;
+		if (timer.WaitForXFrames(curAttack.endlag)){ //endlag
 			curAttack.anim.ResetAnim();
-			ChangeState(prevState);
-			return true; //Attack is completed
+			if (curPlayer.GetComponent<Player>() != null || ctrlState) {
+				ChangeState(prevState);
+			}
+		    return true; //Attack is completed
 		}
 		// Summon a projectile (if any) after the move
 		else if(timer.curFrame() == curAttack.getLastFrame() + 1){
@@ -209,6 +209,7 @@ public class Player : MonoBehaviour {
 						// Tell the enemy that it has been attacked
 						if(isHit){
 							foes[i].SendMessage("Attacked", curAttack.power);
+							Debug.Log("hit");
 						}
 					}
 				}

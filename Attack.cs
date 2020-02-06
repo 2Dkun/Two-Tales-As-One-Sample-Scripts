@@ -13,6 +13,7 @@ public class Attack {
 	public bool isParry;
 	public int mpCost;
 	public GameObject prefab;
+	public FrameCounter timer;
 
 	public int getLastFrame() { return startup + linger; }
 }
