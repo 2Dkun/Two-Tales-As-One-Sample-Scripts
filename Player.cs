@@ -30,6 +30,7 @@ public class Player : MonoBehaviour {
 	[System.Serializable]
     public class Anims {
 		public SpriteAnimator idle, crouch, walk, dash, jump, swap, control;
+		public GameObject ctrlParticles;
 	}
 
 	[System.Serializable]
@@ -44,22 +45,25 @@ public class Player : MonoBehaviour {
 	}
 
 	// Base character data
-    public int maxHP = 100, maxMP = 100;    // just a default value
+    public int maxHP = 100, maxMP = 100;    
+	public float mpRate;
 	public PlayerClass sword, shield;
- 
+	public HitBox hurtBox;
+
 	// Character states
 	public enum States { Grounded, Airborne, Swap, Attack, Parry, Hurt, Block };
 	private States curState { get; set; }
 	private States prevState { get; set; }
 	private bool ctrlState;
 
-	// Other character data
-	public GameObject player;
-	private GameObject[] foes;
-	public HitBox hurtBox;
-	private PlayerClass curClass;
-	private int curHP, curMP;
+	// Stat variables
+	private int curHP;
+	private float curMP;
 	private float curSP = 100;
+	private bool mpRecharge;
+	// Other character data
+	private GameObject[] foes;
+	private PlayerClass curClass;
 	private float xVel, yVel;
 	private float flipScale;
 	private Attack curAttack;
@@ -67,8 +71,9 @@ public class Player : MonoBehaviour {
 	private int iframes;
 
 	// Player Objects
-	public GameObject playerHUD;
-	public GameObject ghost;
+	private GameObject ghost;
+	private GameObject player;
+	private GameObject playerHUD;
 
 	// TEMP VARS
 	public float minHeight; // detect ground better in future
@@ -76,6 +81,10 @@ public class Player : MonoBehaviour {
 
 	// Initialize variables
     public void Start() {
+		ghost = FindObjectOfType<Ghost>().gameObject;
+		player = FindObjectOfType<Player>().gameObject;
+		playerHUD = FindObjectOfType<HUDManager>().gameObject;
+
 		timer = new FrameCounter();
 		subTimer = new FrameCounter();
 		foes = gameObject.GetComponent<DungeonManager>().enemies;
@@ -104,11 +113,17 @@ public class Player : MonoBehaviour {
 		// Update SWAP meter
 		if(curSP < 100) {
 			curSP += Time.deltaTime * curClass.swapRate;
-			if(curSP > 100) {
-				curSP = 100;
-			}
+			if(curSP > 100) curSP = 100;
 			playerHUD.GetComponent<HUDManager>().UpdateSP(curSP/100);		
 		}
+		// Update MP meter
+		if (mpRecharge) {
+			curMP += Time.deltaTime * mpRate;
+			if (curMP >= maxMP) { curMP = maxMP; mpRecharge = false; }
+			playerHUD.GetComponent<HUDManager>().RechargeMP(curMP / maxMP);
+		}
+		Debug.Log(mpRecharge);
+
 		// Update iframes
 		if(iframes > 0) {
 			// Handle iframe animation
@@ -128,29 +143,22 @@ public class Player : MonoBehaviour {
 		// Control the ghost player
 		if (Input.GetKeyDown(KeyCode.LeftShift) && curState == States.Grounded) {
 			ctrlState = true;
+			curClass.charAnims.ctrlParticles.SetActive(true);
 			ChangeClass();
 		}
 		if (ctrlState) {
-            if(curClass == sword)
-			    player.GetComponent<SpriteRenderer>().sprite = shield.charAnims.control.PlayAnim();
-            else
+			if (curClass == sword) 
+				player.GetComponent<SpriteRenderer>().sprite = shield.charAnims.control.PlayAnim();
+			else
 				player.GetComponent<SpriteRenderer>().sprite = sword.charAnims.control.PlayAnim();
 
 			if (Input.GetKeyUp(KeyCode.LeftShift)) {
 				UndoControl();
+				curClass.charAnims.ctrlParticles.SetActive(false);
 			}
 		}
 		else {
-			// See if player made any skill inputs
-			if (curClass == this.shield) {
-				if (Input.GetKey(KeyCode.Semicolon)) Block(player, shield.skills[0], KeyCode.Semicolon);
-				else if (Input.GetKey(KeyCode.K)) ParryStrike(shield.skills[1]);
-				else if (Input.GetKey(KeyCode.U)) BasicSkill(shield.skills[2]);
-			}
-			else {
-				if (Input.GetKey(KeyCode.J)) AnotherSwing(sword.skills[0], sword.skills[1]);
-				else if (Input.GetKey(KeyCode.U)) BasicSkill(sword.skills[2]);
-			}
+			CheckSkills();
 
 			// Run through player state machine
 			switch (curState) {
@@ -169,8 +177,21 @@ public class Player : MonoBehaviour {
 		ghost.GetComponent<Ghost>().ActFree(ctrlState);
 	}
 
-	// Perform current attack
-	public bool Attack(GameObject curPlayer, Attack curAttack) {
+	// See if player made any skill inputs
+	public void CheckSkills() {
+		if (curClass == this.shield) {
+			if (Input.GetKey(KeyCode.Semicolon)) Block(player, shield.skills[0], KeyCode.Semicolon);
+			else if (Input.GetKey(KeyCode.K)) ParryStrike(shield.skills[1]);
+			else if (Input.GetKey(KeyCode.U)) BasicSkill(shield.skills[2]);
+		}
+		else {
+			if (Input.GetKey(KeyCode.J)) AnotherSwing(sword.skills[0], sword.skills[1]);
+			else if (Input.GetKey(KeyCode.U)) BasicSkill(sword.skills[2]);
+		}
+	}
+
+    // Perform current attack
+    public bool Attack(GameObject curPlayer, Attack curAttack) {
 		// Play attack animation
 		curPlayer.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
 
@@ -291,8 +312,8 @@ public class Player : MonoBehaviour {
 		return false; //Attack is still going on
 	}
 
-	// Handles the player's air movement
-	public void MoveAirborne(GameObject curPlayer) {
+    // Handles the player's air movement
+    public void MoveAirborne(GameObject curPlayer) {
 		curPlayer.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.jump.PlayAnim();
 
 		// SWAP
@@ -314,14 +335,12 @@ public class Player : MonoBehaviour {
 			this.xVel += -curClass.airAccel * Time.deltaTime * 30;
 			if(xVel < -curClass.airSpd)
 				xVel = -curClass.airSpd;
-			//player.transform.localScale = new Vector2(-flipScale, flipScale);
 		}
 		// MOVE RIGHT
 		else if(Input.GetKey(KeyCode.D)) {
 			this.xVel += curClass.airAccel * Time.deltaTime * 30;
 			if(xVel > curClass.airSpd)
 				xVel = curClass.airSpd;
-			//player.transform.localScale = new Vector2(flipScale, flipScale);
 		}
 
 		// ATTACK
@@ -340,8 +359,8 @@ public class Player : MonoBehaviour {
         }
 	}
 
-	// Handles the player's grounded movement
-	public void MoveGrounded(GameObject curPlayer) {
+    // Handles the player's grounded movement
+    public void MoveGrounded(GameObject curPlayer) {
 
 		// SWAP
 		if (Input.GetKeyDown(KeyCode.W)) {
@@ -556,10 +575,11 @@ public class Player : MonoBehaviour {
 
 	// Allows players to use a skill with no unique traits
 	private void BasicSkill(Attack skill){
-		if(curState == States.Grounded && skill.mpCost <= curMP){
+		if(curState == States.Grounded && !mpRecharge){
 			// Set current attack as Skill1
 			curAttack = skill;
 			curMP -= skill.mpCost;
+			if (curMP <= 0) mpRecharge = true;
 			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
 
 			ChangeState(States.Attack);
@@ -569,8 +589,10 @@ public class Player : MonoBehaviour {
 	/* -------------------------------- SWORD SKILLS -------------------------------- */
 	// A skill that allows for multiple swings from Shida's basic attack
 	private void AnotherSwing(Attack atk2, Attack atk3) {
-		if(curAttack == sword.atk){
-			if(timer.curFrame() >= curAttack.getLastFrame() && timer.curFrame() < curAttack.endlag){ 
+		Debug.Log(curAttack);
+		if (curAttack == sword.atk){
+			FrameCounter timer = curAttack.timer;
+			if (timer.curFrame() >= curAttack.getLastFrame() && timer.curFrame() < curAttack.endlag) {
 				// Reset previous attack
 				curAttack.anim.ResetAnim();
 				timer.resetWait();
@@ -580,7 +602,8 @@ public class Player : MonoBehaviour {
 			}
 		}
 		else if(curAttack == atk2){
-			if(timer.curFrame() >= atk2.getLastFrame() && timer.curFrame() < atk2.endlag){ 
+			FrameCounter timer = curAttack.timer;
+			if (timer.curFrame() >= atk2.getLastFrame() && timer.curFrame() < atk2.endlag){ 
 				// Reset previous attack
 				curAttack.anim.ResetAnim();
 				timer.resetWait();
@@ -617,7 +640,7 @@ public class Player : MonoBehaviour {
 	// A skill that switches the current player to Shida and strikes the enemy
 	private void ParryStrike(Attack skill){
 		// Skill can only be done during a parry
-		if(curState == States.Parry && skill.mpCost <= curMP){
+		if(curState == States.Parry && !mpRecharge){
 			// Reset previous attack
 			curAttack.anim.ResetAnim();
 			timer.resetWait();
@@ -625,6 +648,7 @@ public class Player : MonoBehaviour {
 			// Set current attack as Skill1
 			curAttack = skill;
 			curMP -= skill.mpCost;
+			if (curMP <= 0) mpRecharge = true;
 			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
 
 			// Apply the changes for swapping character

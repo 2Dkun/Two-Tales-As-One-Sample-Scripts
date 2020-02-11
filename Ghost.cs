@@ -70,7 +70,8 @@ public class Ghost : MonoBehaviour {
         }
         else {
             Player ctrl = player.GetComponent<Player>();
-        //    Debug.Log("GHOST: " + ctrl.GetState());
+            //    Debug.Log("GHOST: " + ctrl.GetState());
+            ctrl.CheckSkills();
 
             switch (ctrl.GetState()) {
                 case Player.States.Airborne:
@@ -155,7 +156,6 @@ public class Ghost : MonoBehaviour {
         if (curAttack == null)  curAttack = ctrl.GetAttack();
         isAttack = !ctrl.Attack(gameObject, curAttack);
         if (!isAttack)  curAttack = null;
-        Debug.Log("G: " + isAttack);
     }
 
 

@@ -94,6 +94,26 @@ public class HUDManager : MonoBehaviour {
 	public void UpdateMP(float percent) { UpdateStatBar(1, percent); }
 	public void UpdateSP(float percent) { UpdateStatBar(2, percent); }
 
+	public void RechargeMP(float percent) {
+		// Specify the bar
+		int bar = 1; // MP bar
+
+		if (percent >= 1) {
+			statBars[bar].original.transform.localPosition = statBars[bar].full;
+			statBars[bar].shadow.transform.localPosition = statBars[bar].full;
+		}
+		else {
+			// Get position of new Vector3 based on given percent
+			Vector3 newPos = (statBars[bar].full - statBars[bar].empty) * percent;
+			newPos += statBars[bar].empty;
+
+			// Set the given status bar to that position
+			statBars[bar].shadow.transform.localPosition = newPos;
+			statBars[bar].barChanged = true;
+			statBars[bar].timer.resetWait();
+		}
+	}
+
 	// Changes the current character in status HUD
 	public void SwapChar() {
 		if(curChar == sword)	curChar = shield;
