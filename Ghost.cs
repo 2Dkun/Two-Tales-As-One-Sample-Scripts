@@ -66,6 +66,7 @@ public class Ghost : MonoBehaviour {
             float heightDif = transform.localPosition.y - player.transform.localPosition.y;
             if (Mathf.Abs(heightDif) <= leniency) {
                 ctrlRdy = true;
+                player.GetComponent<DungeonManager>().UpdateCamera(gameObject);
             }
         }
         else {

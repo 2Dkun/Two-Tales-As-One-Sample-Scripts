@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class DungeonManager : MonoBehaviour {
 
+	public GameObject curCam;
+
 	public GameObject player, ghost;
 	public GameObject[] enemies;
 	private FrameCounter frameCounter;
@@ -72,6 +74,11 @@ public class DungeonManager : MonoBehaviour {
 
 	}
 
+	// Update player position for camera
+	public void UpdateCamera(GameObject player) {
+		curCam.GetComponent<CameraManager>().player = player;
+    }
+
 	// Function used to sort groundPoints by their x position
 	private int GroundCompare(GameObject a, GameObject b) {
         if (a == null) return (b == null) ? 0 : -1;
@@ -110,7 +117,7 @@ public class DungeonManager : MonoBehaviour {
 		prevPos = obj.transform.position;
 	}
 
-	// Prevetn/allow all objects to act freely
+	// Prevent/allow all objects to act freely
 	public void PauseGame() 	{ isPause = true; }
 	public void ContinueGame() { isPause = false; }
 }

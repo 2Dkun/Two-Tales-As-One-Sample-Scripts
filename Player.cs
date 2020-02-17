@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(DungeonManager))]
 public class Player : MonoBehaviour {
  
 	/*
@@ -145,6 +146,9 @@ public class Player : MonoBehaviour {
 			ctrlState = true;
 			curClass.charAnims.ctrlParticles.SetActive(true);
 			ChangeClass();
+		}
+		else if (Input.GetKeyUp(KeyCode.LeftShift)) {
+			gameObject.GetComponent<DungeonManager>().UpdateCamera(gameObject);
 		}
 		if (ctrlState) {
 			if (curClass == sword) 
