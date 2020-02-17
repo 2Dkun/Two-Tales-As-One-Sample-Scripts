@@ -4,13 +4,15 @@ using UnityEngine;
 
 public class DungeonManager : MonoBehaviour {
 
-	public GameObject player;
+	public GameObject curCam;
+
+	public GameObject player, ghost;
 	public GameObject[] enemies;
 	private FrameCounter frameCounter;
 
 	public GameObject ground;
 	private GameObject[] groundPoints;
-	private Vector3 prevPlayPos;
+	private Vector3 prevPlayPos, prevGhostPos;
 	private Vector3[] prevFoePos;
 	private bool isPause;
 
@@ -53,6 +55,7 @@ public class DungeonManager : MonoBehaviour {
 		}
 		player.GetComponent<Player>().ControlPlayer();
 		KeepInBounds(player, ref prevPlayPos);
+		KeepInBounds(ghost, ref prevGhostPos);
 
 
 		// Check if enemy has detected player then check if attacked
@@ -70,6 +73,11 @@ public class DungeonManager : MonoBehaviour {
 		// Else let all object act freely
 
 	}
+
+	// Update player position for camera
+	public void UpdateCamera(GameObject player) {
+		curCam.GetComponent<CameraManager>().player = player;
+    }
 
 	// Function used to sort groundPoints by their x position
 	private int GroundCompare(GameObject a, GameObject b) {
@@ -109,7 +117,7 @@ public class DungeonManager : MonoBehaviour {
 		prevPos = obj.transform.position;
 	}
 
-	// Prevetn/allow all objects to act freely
+	// Prevent/allow all objects to act freely
 	public void PauseGame() 	{ isPause = true; }
 	public void ContinueGame() { isPause = false; }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(DungeonManager))]
 public class Player : MonoBehaviour {
  
 	/*
@@ -29,13 +30,15 @@ public class Player : MonoBehaviour {
 
 	[System.Serializable]
     public class Anims {
-		public Sprite[] idle, crouch, walk, dash, jump, swap;
+		public SpriteAnimator idle, crouch, walk, dash, jump, swap, control;
+		public GameObject ctrlParticles;
 	}
 
 	[System.Serializable]
 	public class PlayerClass {
 		public Anims charAnims;
-		public float walkSpd, dashSpd, airSpd, jumpHeight, gravity;
+		public float walkSpd, dashSpd, airSpd;
+		public float jumpHeight, gravity, fallSpd;
 		public float airAccel, swapRate;
 		public Attack atk, cAtk;
 		public Attack[] skills;
@@ -43,21 +46,25 @@ public class Player : MonoBehaviour {
 	}
 
 	// Base character data
-    public int maxHP = 100, maxMP = 100;    // just a default value
+    public int maxHP = 100, maxMP = 100;    
+	public float mpRate;
 	public PlayerClass sword, shield;
- 
+	public HitBox hurtBox;
+
 	// Character states
-	private enum States { Grounded, Airborne, Swap, Attack, Parry, Hurt, Block };
+	public enum States { Grounded, Airborne, Swap, Attack, Parry, Hurt, Block };
 	private States curState { get; set; }
 	private States prevState { get; set; }
+	private bool ctrlState;
 
-	// Other character data
-	public GameObject player;
-	private GameObject[] foes;
-	public HitBox hurtBox;
-	private PlayerClass curClass;
-	private int curHP, curMP;
+	// Stat variables
+	private int curHP;
+	private float curMP;
 	private float curSP = 100;
+	private bool mpRecharge;
+	// Other character data
+	private GameObject[] foes;
+	private PlayerClass curClass;
 	private float xVel, yVel;
 	private float flipScale;
 	private Attack curAttack;
@@ -65,7 +72,9 @@ public class Player : MonoBehaviour {
 	private int iframes;
 
 	// Player Objects
-	public GameObject playerHUD;
+	private GameObject ghost;
+	private GameObject player;
+	private GameObject playerHUD;
 
 	// TEMP VARS
 	public float minHeight; // detect ground better in future
@@ -73,6 +82,10 @@ public class Player : MonoBehaviour {
 
 	// Initialize variables
     public void Start() {
+		ghost = FindObjectOfType<Ghost>().gameObject;
+		player = FindObjectOfType<Player>().gameObject;
+		playerHUD = FindObjectOfType<HUDManager>().gameObject;
+
 		timer = new FrameCounter();
 		subTimer = new FrameCounter();
 		foes = gameObject.GetComponent<DungeonManager>().enemies;
@@ -85,22 +98,6 @@ public class Player : MonoBehaviour {
 		flipScale = Mathf.Abs(player.transform.localScale.x);
 	}
 
-	// TESTING PURPOSES REMOVE ME LATER
-	/*
-	public void Update(){
-		ControlPlayer();
-
-		// Update SWAP meter
-		if(curSP < 100) {
-			curSP += Time.deltaTime * curClass.swapRate;
-			if(curSP > 100) {
-				curSP = 100;
-			}
-			playerHUD.GetComponent<HUDManager>().UpdateSP(curSP/100);		
-		}
-	}
-	*/
-
 	public void UpdateGround(float newHeight){
 		minHeight = newHeight;
 		if(minHeight != transform.position.y) {
@@ -112,16 +109,22 @@ public class Player : MonoBehaviour {
 
 	// Allow the user to have full control over the player
 	public void ControlPlayer(){
-		//Debug.Log(curState);
+	//	Debug.Log("PLAYER "+ curState);
 
 		// Update SWAP meter
 		if(curSP < 100) {
 			curSP += Time.deltaTime * curClass.swapRate;
-			if(curSP > 100) {
-				curSP = 100;
-			}
+			if(curSP > 100) curSP = 100;
 			playerHUD.GetComponent<HUDManager>().UpdateSP(curSP/100);		
 		}
+		// Update MP meter
+		if (mpRecharge) {
+			curMP += Time.deltaTime * mpRate;
+			if (curMP >= maxMP) { curMP = maxMP; mpRecharge = false; }
+			playerHUD.GetComponent<HUDManager>().RechargeMP(curMP / maxMP);
+		}
+		Debug.Log(mpRecharge);
+
 		// Update iframes
 		if(iframes > 0) {
 			// Handle iframe animation
@@ -138,43 +141,72 @@ public class Player : MonoBehaviour {
 			}
 		}
 
-		// See if player made any skill inputs
-		if(curClass == this.shield){
-			if(Input.GetKey(KeyCode.Semicolon))		Block(shield.skills[0], KeyCode.Semicolon);
-			else if(Input.GetKey(KeyCode.K))		ParryStrike(shield.skills[1]);
-			else if(Input.GetKey(KeyCode.U))		BasicSkill(shield.skills[2]);
+		// Control the ghost player
+		if (Input.GetKeyDown(KeyCode.LeftShift) && curState == States.Grounded) {
+			ctrlState = true;
+			curClass.charAnims.ctrlParticles.SetActive(true);
+			ChangeClass();
 		}
-		else{
-			if(Input.GetKey(KeyCode.J))				AnotherSwing(sword.skills[0], sword.skills[1]);
-			else if(Input.GetKey(KeyCode.U))		BasicSkill(sword.skills[2]);
+		else if (Input.GetKeyUp(KeyCode.LeftShift)) {
+			gameObject.GetComponent<DungeonManager>().UpdateCamera(gameObject);
+		}
+		if (ctrlState) {
+			if (curClass == sword) 
+				player.GetComponent<SpriteRenderer>().sprite = shield.charAnims.control.PlayAnim();
+			else
+				player.GetComponent<SpriteRenderer>().sprite = sword.charAnims.control.PlayAnim();
+
+			if (Input.GetKeyUp(KeyCode.LeftShift)) {
+				UndoControl();
+				curClass.charAnims.ctrlParticles.SetActive(false);
+			}
+		}
+		else {
+			CheckSkills();
+
+			// Run through player state machine
+			switch (curState) {
+				case States.Grounded: MoveGrounded(player); break;
+				case States.Airborne: MoveAirborne(player); break;
+				case States.Swap: Swap(); break;
+				case States.Attack: Attack(player, this.curAttack); break;
+				case States.Parry: Attack(player, this.curAttack); break;
+				case States.Hurt: ApplyHitstun(); break;
+				case States.Block: Block(player, shield.skills[0], KeyCode.Semicolon); break;
+				default: break;
+			}
 		}
 
-		// Run through player state machine
-		switch(curState){
-			case States.Grounded:	MoveGrounded(); 								break;
-			case States.Airborne: 	MoveAirborne(); 								break;
-			case States.Swap:		Swap(); 										break;
-			case States.Attack:  	Attack();										break; 
-			case States.Parry: 		Attack();										break;
-			case States.Hurt:		ApplyHitstun(); 								break;
-			case States.Block:		Block(shield.skills[0], KeyCode.Semicolon); 	break;
-			default: 																break;
+		// Allow the ghost to act
+		ghost.GetComponent<Ghost>().ActFree(ctrlState);
+	}
+
+	// See if player made any skill inputs
+	public void CheckSkills() {
+		if (curClass == this.shield) {
+			if (Input.GetKey(KeyCode.Semicolon)) Block(player, shield.skills[0], KeyCode.Semicolon);
+			else if (Input.GetKey(KeyCode.K)) ParryStrike(shield.skills[1]);
+			else if (Input.GetKey(KeyCode.U)) BasicSkill(shield.skills[2]);
+		}
+		else {
+			if (Input.GetKey(KeyCode.J)) AnotherSwing(sword.skills[0], sword.skills[1]);
+			else if (Input.GetKey(KeyCode.U)) BasicSkill(sword.skills[2]);
 		}
 	}
 
-	// Perform current attack
-	private bool Attack() {
+    // Perform current attack
+    public bool Attack(GameObject curPlayer, Attack curAttack) {
 		// Play attack animation
-		player.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
-		
-		// See if the move has ended
-		if(timer.WaitForXFrames(curAttack.endlag)){ //endlag
-			if(prevState == States.Airborne)
-				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.jump[0];
+		curPlayer.GetComponent<SpriteRenderer>().sprite = curAttack.anim.PlayAnim();
 
+		// See if the move has ended
+		FrameCounter timer = curAttack.timer;
+		if (timer.WaitForXFrames(curAttack.endlag)){ //endlag
 			curAttack.anim.ResetAnim();
-			ChangeState(prevState);
-			return true; //Attack is completed
+			if (curPlayer.GetComponent<Player>() != null || ctrlState) {
+				ChangeState(prevState);
+			}
+		    return true; //Attack is completed
 		}
 		// Summon a projectile (if any) after the move
 		else if(timer.curFrame() == curAttack.getLastFrame() + 1){
@@ -198,10 +230,11 @@ public class Player : MonoBehaviour {
 					if(foes[i] != null) {		
 						HitBox foeHurt = new HitBox();
 						foes[i].SendMessage("GetHurtBox", foeHurt);
-						bool isHit = IsHitTarget(curAttack.hitBox, player, foeHurt, foes[i]);
+						bool isHit = IsHitTarget(curAttack.hitBox, curPlayer, foeHurt, foes[i]);
 						// Tell the enemy that it has been attacked
 						if(isHit){
 							foes[i].SendMessage("Attacked", curAttack.power);
+							Debug.Log("hit");
 						}
 					}
 				}
@@ -215,11 +248,11 @@ public class Player : MonoBehaviour {
 						HitBox foeHit = new HitBox(); 
 						foes[i].SendMessage("GetCurAtk", foeHit);
 						if(!foeHit.IsEqual(new HitBox())){
-							bool isParry = IsHitTarget(curAttack.hitBox, player, foeHit, foes[i]);
+							bool isParry = IsHitTarget(curAttack.hitBox, curPlayer, foeHit, foes[i]);
 							
 
 							if(isParry){
-								curState = States.Parry;
+								//curState = States.Parry;
 								foes[i].SendMessage("Parried");
 								Debug.Log("yote");
 							}
@@ -230,7 +263,7 @@ public class Player : MonoBehaviour {
 
 			// Move the player based on attack velocity
 			float playDir = transform.localScale.x/flipScale;
-			player.transform.Translate(playDir * curAttack.xVel * Time.deltaTime, 
+			curPlayer.transform.Translate(playDir * curAttack.xVel * Time.deltaTime, 
 				curAttack.yVel * Time.deltaTime, 0);
 		}
 		else if(Input.GetKey(KeyCode.W) && curSP >= 100) {
@@ -249,6 +282,7 @@ public class Player : MonoBehaviour {
 			curSP = 0;
 
 			playerHUD.GetComponent<HUDManager>().SwapChar();
+			ghost.GetComponent<Ghost>().Swap();
 		}
 		/*
 		else if(curState == States.Parry) {
@@ -268,11 +302,12 @@ public class Player : MonoBehaviour {
 				if(xVel > curClass.airSpd)
 					xVel = curClass.airSpd;
 			}
-			ApplyGravity();
+			ApplyGravity(curPlayer);
 
 			// Change to grounded state if player lands
-			if(player.transform.localPosition.y <= minHeight){
-				player.transform.localPosition = new Vector2(player.transform.localPosition.x, minHeight);
+			if(curPlayer.transform.localPosition.y <= minHeight){
+				curPlayer.transform.localPosition =
+                    new Vector2(curPlayer.transform.localPosition.x, minHeight);
 				ChangeState(States.Grounded);
 				timer.resetWait();
 				xVel = 0;
@@ -281,14 +316,18 @@ public class Player : MonoBehaviour {
 		return false; //Attack is still going on
 	}
 
-	// Handles the player's air movement
-	private void MoveAirborne() {
+    // Handles the player's air movement
+    public void MoveAirborne(GameObject curPlayer) {
+		curPlayer.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.jump.PlayAnim();
+
 		// SWAP
 		if (Input.GetKeyDown(KeyCode.W)) {
 			if(curSP >= 100) {
 				ChangeState(States.Swap);
-				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
 				timer.resetWait();
+				ghost.GetComponent<Ghost>().Swap();
+				// Stop enemies from moving
+				gameObject.GetComponent<DungeonManager>().PauseGame();
 			}
 			else {
 				// IMPLEMENT STRUGGLE ANIMATION LATER
@@ -300,14 +339,12 @@ public class Player : MonoBehaviour {
 			this.xVel += -curClass.airAccel * Time.deltaTime * 30;
 			if(xVel < -curClass.airSpd)
 				xVel = -curClass.airSpd;
-			//player.transform.localScale = new Vector2(-flipScale, flipScale);
 		}
 		// MOVE RIGHT
 		else if(Input.GetKey(KeyCode.D)) {
 			this.xVel += curClass.airAccel * Time.deltaTime * 30;
 			if(xVel > curClass.airSpd)
 				xVel = curClass.airSpd;
-			//player.transform.localScale = new Vector2(flipScale, flipScale);
 		}
 
 		// ATTACK
@@ -315,26 +352,26 @@ public class Player : MonoBehaviour {
 			ChangeState(States.Attack);
 			curAttack = curClass.atk;
 		}
-		ApplyGravity();
+		ApplyGravity(curPlayer);
 
 		// Check if player has landed
-		if(player.transform.localPosition.y <= minHeight){
-            player.transform.localPosition = new Vector2(player.transform.localPosition.x, minHeight);
+		if(curPlayer.transform.localPosition.y <= minHeight){
+			curPlayer.transform.localPosition = new Vector2(curPlayer.transform.localPosition.x, minHeight);
 			ChangeState(States.Grounded);
 			xVel = 0;
 			yVel = 0;
         }
 	}
 
-	// Handles the player's grounded movement
-	private void MoveGrounded() {
+    // Handles the player's grounded movement
+    public void MoveGrounded(GameObject curPlayer) {
 
 		// SWAP
 		if (Input.GetKeyDown(KeyCode.W)) {
 			if(curSP >= 100) {
 				ChangeState(States.Swap);
-				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap[0];
 				timer.resetWait();
+				ghost.GetComponent<Ghost>().Swap();
 				// Stop enemies from moving
 				gameObject.GetComponent<DungeonManager>().PauseGame();
 			}
@@ -353,10 +390,10 @@ public class Player : MonoBehaviour {
 
 			// Change direction of attack based on input
 			if(Input.GetKey(KeyCode.A)){
-				player.transform.localScale = new Vector2(-flipScale, flipScale);
+				curPlayer.transform.localScale = new Vector2(-flipScale, flipScale);
 			}
 			else if(Input.GetKey(KeyCode.D)){
-				player.transform.localScale = new Vector2(flipScale, flipScale);
+				curPlayer.transform.localScale = new Vector2(flipScale, flipScale);
 			}
 
 			timer.resetWait();
@@ -364,37 +401,37 @@ public class Player : MonoBehaviour {
 
 		// MOVE LEFT
 		else if (Input.GetKey(KeyCode.A) && Input.GetKey(KeyCode.LeftShift)) {
-			player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.walk[0];
-			player.transform.localScale = new Vector2(-flipScale, flipScale);
-			player.transform.Translate(-1 * curClass.walkSpd * Time.deltaTime, 0, 0);
+			curPlayer.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.walk.PlayAnim();
+			curPlayer.transform.localScale = new Vector2(-flipScale, flipScale);
+			curPlayer.transform.Translate(-1 * curClass.walkSpd * Time.deltaTime, 0, 0);
 		}
 		else if(Input.GetKey(KeyCode.A)) {
-			player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.dash[0];
-			player.transform.localScale = new Vector2(-flipScale, flipScale);
-			player.transform.Translate(-1 * curClass.dashSpd * Time.deltaTime, 0, 0);
+			curPlayer.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.dash.PlayAnim();
+			curPlayer.transform.localScale = new Vector2(-flipScale, flipScale);
+			curPlayer.transform.Translate(-1 * curClass.dashSpd * Time.deltaTime, 0, 0);
 		}
 
 		// MOVE RIGHT
 		else if (Input.GetKey(KeyCode.D) && Input.GetKey(KeyCode.LeftShift)) {
-			player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.walk[0];
-			player.transform.localScale = new Vector2(flipScale, flipScale);
-			player.transform.Translate(curClass.walkSpd * Time.deltaTime, 0, 0);
+			curPlayer.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.walk.PlayAnim();
+			curPlayer.transform.localScale = new Vector2(flipScale, flipScale);
+			curPlayer.transform.Translate(curClass.walkSpd * Time.deltaTime, 0, 0);
 		}
 		else if(Input.GetKey(KeyCode.D)) {
-			player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.dash[0];
-			player.transform.localScale = new Vector2(flipScale, flipScale);
-			player.transform.Translate(curClass.dashSpd * Time.deltaTime, 0, 0);
+			curPlayer.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.dash.PlayAnim();
+			curPlayer.transform.localScale = new Vector2(flipScale, flipScale);
+			curPlayer.transform.Translate(curClass.dashSpd * Time.deltaTime, 0, 0);
 		}
 
 		// DOWN
 		else if(Input.GetKey(KeyCode.S)) {
-			player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.crouch[0];
+			curPlayer.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.crouch.PlayAnim();
 			xVel = 0;
 		}
 
 		// IDLE
 		else {
-			player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.idle[0];
+			curPlayer.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.idle.PlayAnim();
 			xVel = 0;
 		}
 
@@ -428,28 +465,31 @@ public class Player : MonoBehaviour {
 		this.yVel = Mathf.Abs(curClass.jumpHeight) * 0.2f;
 		if(xVel > 0)		this.xVel = curClass.airSpd;
 		else if(xVel < 0)	this.xVel = -curClass.airSpd;
-
-		player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.jump[0];
 	}
 
+    // Change current player
+	private void ChangeClass() {
+		if (curClass == sword) curClass = shield;
+		else curClass = sword;
+	}
 	// Swap the current class of the player
 	private void Swap() {
+		player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.swap.PlayAnim();
+
 		// Apply swap once character is faded enough
-		if(player.GetComponent<SpriteRenderer>().color.r == 0.25f){
+		if (player.GetComponent<SpriteRenderer>().color.r == 0.25f){
 			player.GetComponent<SpriteRenderer>().color = new Color(1,1,1);
 
 			// Apply the changes for swapping character
-			if(curClass == sword)	curClass = shield;
-			else					curClass = sword;
+			ChangeClass();
 			curSP = 0;
 
-			playerHUD.GetComponent<HUDManager>().SwapChar();		
+			playerHUD.GetComponent<HUDManager>().SwapChar();
+			ghost.GetComponent<Ghost>().SwapChar();		
 
 			if(prevState == States.Airborne) {
 				if(xVel > 0)		this.xVel = curClass.airSpd;
 				else if(xVel < 0)	this.xVel = -curClass.airSpd;
-
-				player.GetComponent<SpriteRenderer>().sprite = curClass.charAnims.jump[0];
 			}
 			ChangeState(prevState);
 			gameObject.GetComponent<DungeonManager>().ContinueGame();
@@ -460,14 +500,15 @@ public class Player : MonoBehaviour {
             if(i < 0.25f) {
 				i = 0.25f;
 			}
-            player.GetComponent<SpriteRenderer>().color = new Color(i,i,i);
+			player.GetComponent<SpriteRenderer>().color = new Color(i,i,i);
 		}
 	}
 
 	// Apply gravity to the player
-    private void ApplyGravity(){
-        this.yVel -= curClass.gravity * Time.deltaTime;
-        this.player.transform.Translate(this.xVel * Time.deltaTime, this.yVel, 0);
+    private void ApplyGravity(GameObject curPlayer){
+        yVel -= curClass.gravity * Time.deltaTime;
+        if(yVel < 0) yVel *= curClass.fallSpd;
+		curPlayer.transform.Translate(this.xVel * Time.deltaTime, this.yVel, 0);
     }
 
 	// Change player's current state and store it
@@ -513,13 +554,36 @@ public class Player : MonoBehaviour {
 		}
 	}
 	
+	// Return the class that's not currently active
+	public PlayerClass GetGhost() {
+		if(curClass == sword)	return shield;
+		else					return sword;
+	}
+
+	// Get the player's current state
+	public States GetState() { return curState; }
+	public Attack GetAttack() { return curAttack; }
+
+	// Get the player to stop controlling the ghost
+	public void UndoControl() {
+        ctrlState = false;
+        ChangeClass();
+		ghost.GetComponent<Ghost>().UndoControl();
+
+		// Make sure current player doesn't attack
+		if (curState == States.Attack) {
+			curState = prevState;
+			curAttack = null;
+		}
+    }
 
 	// Allows players to use a skill with no unique traits
 	private void BasicSkill(Attack skill){
-		if(curState == States.Grounded && skill.mpCost <= curMP){
+		if(curState == States.Grounded && !mpRecharge){
 			// Set current attack as Skill1
 			curAttack = skill;
 			curMP -= skill.mpCost;
+			if (curMP <= 0) mpRecharge = true;
 			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
 
 			ChangeState(States.Attack);
@@ -529,8 +593,10 @@ public class Player : MonoBehaviour {
 	/* -------------------------------- SWORD SKILLS -------------------------------- */
 	// A skill that allows for multiple swings from Shida's basic attack
 	private void AnotherSwing(Attack atk2, Attack atk3) {
-		if(curAttack == sword.atk){
-			if(timer.curFrame() >= curAttack.getLastFrame() && timer.curFrame() < curAttack.endlag){ 
+		Debug.Log(curAttack);
+		if (curAttack == sword.atk){
+			FrameCounter timer = curAttack.timer;
+			if (timer.curFrame() >= curAttack.getLastFrame() && timer.curFrame() < curAttack.endlag) {
 				// Reset previous attack
 				curAttack.anim.ResetAnim();
 				timer.resetWait();
@@ -540,7 +606,8 @@ public class Player : MonoBehaviour {
 			}
 		}
 		else if(curAttack == atk2){
-			if(timer.curFrame() >= atk2.getLastFrame() && timer.curFrame() < atk2.endlag){ 
+			FrameCounter timer = curAttack.timer;
+			if (timer.curFrame() >= atk2.getLastFrame() && timer.curFrame() < atk2.endlag){ 
 				// Reset previous attack
 				curAttack.anim.ResetAnim();
 				timer.resetWait();
@@ -553,31 +620,31 @@ public class Player : MonoBehaviour {
 
 	/* -------------------------------- SHIELD SKILLS -------------------------------- */
 	// A skill that prevents the player from getting hit
-	private void Block(Attack skill, KeyCode cmd){
+	private void Block(GameObject curPlayer, Attack skill, KeyCode cmd){
 		// Can only block on the ground
 		if(curState == States.Grounded){
 			ChangeState(States.Block);
 		}
 		else if(curState == States.Block){
 			// Play attack animation
-			player.GetComponent<SpriteRenderer>().sprite = skill.anim.PlayAnim();
+			curPlayer.GetComponent<SpriteRenderer>().sprite = skill.anim.PlayAnim();
 		}
 		// Handle inputs
 		if(Input.GetKeyUp(cmd)){
 			ChangeState(States.Grounded);
 		}
 		else if(Input.GetKey(KeyCode.A)) {
-			player.transform.localScale = new Vector2(-flipScale, flipScale);
+			curPlayer.transform.localScale = new Vector2(-flipScale, flipScale);
 		}
 		else if(Input.GetKey(KeyCode.D)) {
-			player.transform.localScale = new Vector2(flipScale, flipScale);
+			curPlayer.transform.localScale = new Vector2(flipScale, flipScale);
 		}
 	}
 	
 	// A skill that switches the current player to Shida and strikes the enemy
 	private void ParryStrike(Attack skill){
 		// Skill can only be done during a parry
-		if(curState == States.Parry && skill.mpCost <= curMP){
+		if(curState == States.Parry && !mpRecharge){
 			// Reset previous attack
 			curAttack.anim.ResetAnim();
 			timer.resetWait();
@@ -585,6 +652,7 @@ public class Player : MonoBehaviour {
 			// Set current attack as Skill1
 			curAttack = skill;
 			curMP -= skill.mpCost;
+			if (curMP <= 0) mpRecharge = true;
 			playerHUD.GetComponent<HUDManager>().UpdateMP((float)curMP/maxMP);
 
 			// Apply the changes for swapping character

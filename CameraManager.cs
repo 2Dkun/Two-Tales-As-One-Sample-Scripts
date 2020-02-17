@@ -7,17 +7,18 @@ public class CameraManager : MonoBehaviour {
 	public GameObject player;
 	public float maxX = 0, maxY = 0, minX = 0, minY = 0;
 	public float smoothTime = 0.3F;
+	public float xShift, yShift;
 	private Vector3 velocity = Vector3.zero;
 
 	
 	// Update is called once per frame
 	void LateUpdate () {
 		// Move camera to player
-		Vector3 newPos = player.transform.TransformPoint(new Vector3(10, 0, -10));
+		Vector3 newPos = player.transform.TransformPoint(new Vector3(xShift, 0, 0));
 		newPos.y = player.transform.position.x;
 		// Smoothly move the camera towards that target position
         transform.position = Vector3.SmoothDamp(transform.position, newPos, ref velocity, smoothTime);
-		transform.localPosition = new Vector3(transform.position.x, player.transform.position.y, -10);
+		transform.localPosition = new Vector3(transform.position.x, player.transform.position.y + yShift, -10);
 
 		// Prevent camera from going out of given boundaries
 		if (transform.localPosition.x > maxX) {
