@@ -48,9 +48,12 @@ public class AxePhantom : Enemy {
 		// Wait a moment before turning around
 		if(transform.localPosition.x > origin.x + foe.walkDist/2 && transform.localScale.x < 0){
 			isTurn = true;
-			if(timer.WaitForXFrames(Random.Range(55,75))){
+			if (timer.WaitForXFrames(Random.Range(55, 75))) {
 				transform.localScale = new Vector2(flipScale, flipScale);
 				isTurn = false;
+			}
+			else {
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.idle.PlayAnim();
 			}
 		}
 		else if(transform.localPosition.x < origin.x - foe.walkDist/2 && transform.localScale.x > 0) {
@@ -59,6 +62,12 @@ public class AxePhantom : Enemy {
 				transform.localScale = new Vector2(-flipScale, flipScale);
 				isTurn = false;
 			}
+			else {
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.idle.PlayAnim();
+			}
+		}
+        else {
+			gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.walk.PlayAnim();
 		}
 
 
@@ -90,8 +99,8 @@ public class AxePhantom : Enemy {
 			if(timer.WaitForXFrames(cooldown))
 				cooldown = 0;
 			else {
-				// PLAY WALK ANIM
-				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.walk[0];
+				// PLAY RETREAT ANIM
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.retreat.PlayAnim();
 
 				if(transform.localPosition.x > player.transform.localPosition.x){
 					transform.localScale = new Vector2(flipScale, flipScale);
@@ -115,7 +124,7 @@ public class AxePhantom : Enemy {
 			// Dash towards player if not close enough
 			else {
 				// PLAY DASH ANIMATION
-				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.dash[0];
+				gameObject.GetComponent<SpriteRenderer>().sprite = foe.foeAnims.dash.PlayAnim();
 
 				if(transform.localPosition.x > player.transform.localPosition.x){
 					transform.localScale = new Vector2(flipScale, flipScale);
