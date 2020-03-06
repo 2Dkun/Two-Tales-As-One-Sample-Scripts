@@ -6,7 +6,7 @@ public abstract class Enemy: MonoBehaviour {
  
 	[System.Serializable]
     public class Anims {
-		public Sprite[] idle, walk, dash, stunned;
+		public SpriteAnimator idle, walk, dash, retreat, stunned;
 	}
 
     [System.Serializable]
@@ -44,11 +44,13 @@ public abstract class Enemy: MonoBehaviour {
 	private HitBox activeHit;
 	private bool hitPlayer;
 
-	// Temp data?
+	// Player reference
 	public GameObject player;
 
     // Initialize variables
     public void Start() {
+		if (!player) { player = GameObject.FindObjectOfType<Player>().gameObject; }
+
 		timer = new FrameCounter();
 
 		curHP = this.maxHP;
