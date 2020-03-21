@@ -11,13 +11,23 @@ public abstract class BasePlayer : Entity {
 	}
 
 	[System.Serializable]
+	public class Block {
+		public int parryFrames, maxBlock;
+		public SpriteAnimator block, blocked, stop, parry;
+		public Attack rollF, rollB;
+		public bool parried { get; set; }
+    }
+
+	[System.Serializable]
 	public class PlayerClass {
+		public bool isShield;
 		public Anims charAnims;
 		public float walkSpd, dashSpd, airSpd;
 		public float jumpHeight, gravity, fallSpd;
 		public float airAccel, swapRate;
 		public Attack atk, cAtk;
 		public Attack[] skills;
+		public Block block;
 	}
 
 	[Header("Player Data")]
@@ -68,26 +78,32 @@ public abstract class BasePlayer : Entity {
 	#endregion
 
 	#region Core Portected Functions
-	protected void MoveGrounded() {
+    // Handles the player's grounded options
+    protected void MoveGrounded() {
 		// SWAP
 		if (Input.GetKeyDown(KeyCode.W)) {
 			AttemptSwap();
 		}
 
-		// ATTACK
+		// ATTACK OR BLOCK
 		else if (Input.GetKeyDown(KeyCode.J)) {
-			ChangeState(State.ATTACK);
-
-			// Decide if the attack was a normal attack or low
-			if (Input.GetKey(KeyCode.S)) curAttack = curClass.cAtk;
-			else curAttack = curClass.atk;
-
-			// Change direction of attack based on input
-			if (Input.GetKey(KeyCode.A)) {
-				transform.localScale = new Vector2(-flipScale, flipScale);
+			if (!Input.GetKey(KeyCode.S) && curClass.isShield) {
+				ChangeState(State.BLOCK);
 			}
-			else if (Input.GetKey(KeyCode.D)) {
-				transform.localScale = new Vector2(flipScale, flipScale);
+			else {
+				ChangeState(State.ATTACK);
+
+				// Decide if the attack was a normal attack or low
+				if (Input.GetKey(KeyCode.S)) curAttack = curClass.cAtk;
+				else curAttack = curClass.atk;
+
+				// Change direction of attack based on input
+				if (Input.GetKey(KeyCode.A)) {
+					transform.localScale = new Vector2(-flipScale, flipScale);
+				}
+				else if (Input.GetKey(KeyCode.D)) {
+					transform.localScale = new Vector2(flipScale, flipScale);
+				}
 			}
 
 			timer.ResetWait();
@@ -174,4 +190,68 @@ public abstract class BasePlayer : Entity {
 		}
 	}
 	#endregion
+
+	#region Shield Specific Functions
+    // Handles the block state
+	protected void BlockSkill(bool canRoll) {
+		Block b = curClass.block;
+
+		if (b.parried) {
+			GetComponent<SpriteRenderer>().sprite = b.parry.PlayAnim();
+			// Allow Sword to attack here
+
+
+			if (b.parry.isDone()) {
+				timer.ResetWait();
+				b.parried = false;
+				ChangeState(State.GROUNDED);
+			}
+		}
+		// End the block
+		else if (timer.WaitForXFrames(b.maxBlock)) {// || !Input.GetKey(KeyCode.J)) {
+			timer.ResetWait();
+			b.parried = false;
+			ChangeState(State.GROUNDED);
+		}
+		else {
+			// ROLL LEFT
+			if (Input.GetKeyDown(KeyCode.A) && canRoll) {
+				timer.ResetWait();
+				b.parried = false;
+				curState = State.GROUNDED;
+				ChangeState(State.ATTACK);
+				// Decide which roll to use
+				if (transform.localScale.x > 0) curAttack = b.rollB;
+				else curAttack = b.rollF;
+			}
+			// ROLL RIGHT
+			else if (Input.GetKeyDown(KeyCode.D) && canRoll) {
+				timer.ResetWait();
+				b.parried = false;
+				curState = State.GROUNDED;
+				ChangeState(State.ATTACK);
+				// Decide which roll to use
+				if (transform.localScale.x > 0) curAttack = b.rollF;
+				else curAttack = b.rollB;
+			}
+			// BLOCK
+			else {
+				// Check if an attack was parried
+				if (timer.CurFrame() <= b.parryFrames) {
+					List<Entity> parried = CheckParry(hurtbox, dungeon.GetActiveEnemies());
+					for (int i = 0; i < parried.Count; i++) {
+						parried[i].Parried();
+					}
+					if (parried.Count > 0) b.parried = true;
+				}
+				
+				// Play block anims
+				if (timer.CurFrame() > b.maxBlock - b.stop.getDuration()) 
+					GetComponent<SpriteRenderer>().sprite = b.stop.PlayAnim();
+				else 
+				    GetComponent<SpriteRenderer>().sprite = b.block.PlayAnim();
+			}
+		}
+    }
+    #endregion
 }

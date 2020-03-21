@@ -13,6 +13,7 @@ public class Attack {
 	public float xVel, yVel;
 	public bool isParry;
 	public int mpCost;
+	public int iframes;
 	public GameObject prefab; // change to projectile later
     [HideInInspector]
 	public FrameCounter timer;

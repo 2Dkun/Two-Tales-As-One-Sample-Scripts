@@ -25,12 +25,13 @@ public class SpriteAnimator {
     }
 
 
-	// ---Access Functions---
-    public int getLength() 		{ return this.anim.Length; }
-    public float getFrame() 	{ return this.curFrame; }
-    public Sprite[] getSprite() { return this.anim; }
-    public float getFPS()		{ return this.FPS; }
-	public bool isDone()		{ return this.curFrame == 0; }
+    // ---Access Functions---
+    public int getDuration()    { return (int)(anim.Length * FPS); }
+    public int getLength() 		{ return anim.Length; }
+    public float getFrame() 	{ return curFrame; }
+    public Sprite[] getSprite() { return anim; }
+    public float getFPS()		{ return FPS; }
+	public bool isDone()		{ return curFrame == 0; }
 
 
 	// ---Manipulation Procedures---
@@ -38,20 +39,20 @@ public class SpriteAnimator {
 	// Returns the sprite that should be playing in the animation
     public Sprite PlayAnim(){
         // Find which frame should be shown based on real time
-        this.curFrame += Time.deltaTime;
-        int index = (int)(this.curFrame * this.FPS);
+        curFrame += Time.deltaTime;
+        int index = (int)(curFrame * FPS);
         // If the animation is still going, play it
-        if (index < this.anim.Length) {
-            return this.anim[index];
+        if (index < anim.Length) {
+            return anim[index];
         }
         // Else, attack is done being displayed
         else {
             //ResetAnim();
-            if (this.isLoop) {
+            if (isLoop) {
                 ResetAnim();
-                return this.anim[index % this.anim.Length];
+                return anim[index % anim.Length];
             }
-            return this.anim[anim.Length - 1];
+            return anim[anim.Length - 1];
         }
     }
 

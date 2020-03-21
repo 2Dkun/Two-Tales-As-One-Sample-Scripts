@@ -18,8 +18,11 @@ public class Spirit : BasePlayer {
     private float baseAlpha;
     private Vector3 velocity = Vector3.zero;
     private bool inControl, controlRdy;
+    private bool inForcedAction => inAttack || inBlock;
     private bool inAttack =>
         curState == State.ATTACK || curState == State.PARRY;
+    private bool inBlock =>
+        curState == State.BLOCK;
 
     // Initialize spirit data
     private new void Start() {
@@ -27,7 +30,6 @@ public class Spirit : BasePlayer {
 
         maxHP = 100; // Needs to be not 0 so player can take damage
         player = dungeon.GetMainPlayer();
-        curClass = player.GetSpiritClass();
         baseAlpha = GetComponent<SpriteRenderer>().color.a;
     }
 
@@ -37,7 +39,10 @@ public class Spirit : BasePlayer {
 
         // Handles spirit state when not being controlled
         if (!inControl) {
-            if (inAttack) { Attack(curAttack, foes); }
+            if (inForcedAction) {
+                if (inAttack)       Attack(curAttack, foes);
+                else if (inBlock)   BlockSkill(false);
+            }
             else { 
                 switch (curStateS) {
                     case SpiritState.IDLE: ActIdle(); break;
@@ -71,6 +76,7 @@ public class Spirit : BasePlayer {
                 case State.AIRBORNE:    MoveAirborne(); break;
                 case State.SWAP:        SwapPlayers(); break;
                 case State.ATTACK:      Attack(curAttack, foes); break;
+                case State.BLOCK:       BlockSkill(true); break;
                 case State.PARRY:       Attack(curAttack, foes); break;
                 default:                Debug.Log("Bad State: " + curState); break;
             }
@@ -80,7 +86,7 @@ public class Spirit : BasePlayer {
     #region Virtual Function Implmentation
     // Break control if ghost is attacked
     protected override void AttackedChanges() {
-        if (inControl || inAttack) {
+        if (inControl || inForcedAction) {
             player.HurtMainPlayer(maxHP - curHP);
 
             player.UndoControl();
@@ -108,7 +114,7 @@ public class Spirit : BasePlayer {
 
     // Init all variables for the spirit to start moving
     private void SummonSpirit() {
-        if (!inAttack) { ChangeState(State.GROUNDED); }
+        if (!inForcedAction) { ChangeState(State.GROUNDED); }
         // Set class stats for air movement
         gravity = curClass.gravity;
         fallSpd = curClass.fallSpd;
@@ -180,6 +186,11 @@ public class Spirit : BasePlayer {
     public void SetControl(bool isCtrl) {
         inControl = isCtrl;
         if (!isCtrl) controlRdy = false;
+    }
+
+    // Set spirit class
+    public void SetSpiritClass(PlayerClass p) {
+        curClass = p;
     }
     #endregion
 }

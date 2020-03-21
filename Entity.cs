@@ -58,6 +58,9 @@ public abstract class Entity : MonoBehaviour {
     #region Virtual Functions
     // Apply additional changes to entity when they're attacked
     protected virtual void AttackedChanges() { }
+    // Apply additional changes to entity when they're stunned
+    protected virtual void StunnedChanges() { }
+    protected virtual void StunnedComplete() { }
     // Add more functionality when attacks are done in the air
     protected virtual void AttackInAir() { }
     #endregion
@@ -88,8 +91,7 @@ public abstract class Entity : MonoBehaviour {
         // See if the move has ended
         FrameCounter timer = a.timer;
         if (timer.WaitForXFrames(a.endlag)) { //endlag
-            a.anim.ResetAnim();
-            a.BeginCooldown();
+            EndAttack();
             ChangeState(prevState);
             return true; //Attack is completed
         }
@@ -127,27 +129,16 @@ public abstract class Entity : MonoBehaviour {
 
             // See if an attack was blocked if the player's attack
             else if (a.isParry) {
-                for (int i = 0; i < targets.Length; i++) {
-                    // Check if target exists
-                    if (targets[i] != null) {
-                        HitBox tarHit = new HitBox();
-                        targets[i].GetCurAtk(tarHit);
-                        if (!tarHit.IsEqual(new HitBox())) {
-                            bool parried = IsHitTarget(a.hitBox, gameObject,
-                                tarHit, targets[i].gameObject);
-                            if (parried) {
-                                //curState = States.Parry;
-                                targets[i].Parried();
-                                Debug.Log("yote");
-                            }
-                        }
-                    }
+                List<Entity> parried = CheckParry(a.hitBox, targets);
+                for (int i = 0; i < parried.Count; i++) {
+                    parried[i].Parried();
                 }
             }
 
             // Change states to signal parry duration and  update active hitbox
             if (timer.CurFrame() == a.startup) {
                 activeHit = a.hitBox;
+                iframes = a.iframes;
                 if(a.isParry) curState = State.PARRY;
             }
             else if (timer.CurFrame() == a.GetLastFrame()) {
@@ -188,6 +179,39 @@ public abstract class Entity : MonoBehaviour {
         if (yVel < 0) yVel *= fallSpd;
         transform.Translate(xVel * Time.deltaTime, yVel, 0);
     }
+
+    // Apply changes to data when an attack ends
+    protected void EndAttack() {
+        timer.ResetWait();
+        subTimer.ResetWait();
+        if (curAttack != null) {
+            curAttack.timer.ResetWait();
+            curAttack.BeginCooldown();
+            curAttack.anim.ResetAnim();
+        }
+        activeHit = null;
+    }
+
+    // Check if the player parried an attack
+    protected List<Entity> CheckParry(HitBox hb, Entity[] targets) {
+        List<Entity> ents = new List<Entity>();
+        for (int i = 0; i < targets.Length; i++) {
+            // Check if target exists
+            if (targets[i] != null) {
+                HitBox tarHit = new HitBox();
+                targets[i].GetCurAtk(tarHit);
+                if (!tarHit.IsEqual(new HitBox())) {
+                    bool parried = IsHitTarget(hb, gameObject,
+                        tarHit, targets[i].gameObject);
+                    if (parried) {
+                        //targets[i].Parried();
+                        ents.Add(targets[i]);
+                    }
+                }
+            }
+        }
+        return ents;
+    }
     #endregion
 
     #region Public Functions
@@ -207,10 +231,8 @@ public abstract class Entity : MonoBehaviour {
                 curState = prevState;
             if (curState != State.HURT)
                 ChangeState(State.HURT);
-            timer.ResetWait();
-            subTimer.ResetWait();
-            if (curAttack != null) curAttack.timer.ResetWait();
-
+            Debug.Log(curState);
+            EndAttack();
             AttackedChanges();
         }
     }
@@ -218,10 +240,7 @@ public abstract class Entity : MonoBehaviour {
     // Set the entity into parried state
     public void Parried() {
         if (curAttack != null) {
-            curAttack.anim.ResetAnim();
-            //cooldown = curAtk.cooldown;
-            activeHit = null;
-            timer.ResetWait();
+            EndAttack();
         }
         curState = State.GROUNDED;
         ChangeState(State.STUNNED);
@@ -234,10 +253,12 @@ public abstract class Entity : MonoBehaviour {
 
     // Handles the entity's state during hitstun
     public void Stunned() {
+        StunnedChanges();
         // Return the previous state once out of stun
         if (timer.WaitForXFrames(Constants.STUN_TIME)) {
             ChangeState(prevState);
             GetComponent<SpriteRenderer>().color = new Color(1, 1, 1);
+            StunnedComplete();
         }
         // Otherwise play stunned animation
         else {
@@ -247,8 +268,7 @@ public abstract class Entity : MonoBehaviour {
             else {
                 GetComponent<SpriteRenderer>().color = new Color(1, 1, 1);
             }
-        }
-    }
+        }    }
     #endregion
 
 

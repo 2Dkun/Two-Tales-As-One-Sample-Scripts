@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class MainPlayer : BasePlayer {
 
+	public bool startShield;
+
 	private HUDManager playerHUD;
 	private Spirit spirit;
-
 	private bool mpRecharge;
 
 	private new void Start() {
@@ -16,9 +17,19 @@ public class MainPlayer : BasePlayer {
 		playerHUD = dungeon.GetHUDManager();
 
 		curSP = 100;
-		curClass = sword;
-		ApplySwapChanges();
-    }
+		if (startShield) {
+			curClass = shield;
+			spirit.SetSpiritClass(sword);
+			playerHUD.SwapChar(); // Default is sword
+		}
+		else {
+			curClass = sword;
+			spirit.SetSpiritClass(shield);
+		}
+		gravity = curClass.gravity;
+		fallSpd = curClass.fallSpd;
+		
+	}
 
     // Allow the player to act freely
 	public override void ActFreely() {
@@ -40,9 +51,10 @@ public class MainPlayer : BasePlayer {
 			case State.AIRBORNE:    MoveAirborne(); break;
 			case State.SWAP:        Swap(); break;
 			case State.ATTACK:      Attack(curAttack, foes); break;
+			case State.BLOCK:       BlockSkill(true); break;
 			case State.PARRY:       Attack(curAttack, foes); break;
 			case State.HURT:        ApplyHitstun(); break;
-			case State.CONTROL:     Control();  break;
+			case State.CONTROL:     Control(); break;
 			default:                Debug.Log("Bad State: " + curState); break;
 		}
 		
@@ -103,6 +115,7 @@ public class MainPlayer : BasePlayer {
 			if (subTimer.WaitForXFrames(iframes)) { // 25 is arbitrary 
 				subTimer.ResetWait();
 				iframes = 0;
+				GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 1);
 			}
 			else {
 				if (subTimer.CurFrame() % 3 == 1) {
@@ -163,7 +176,7 @@ public class MainPlayer : BasePlayer {
 	private void Control() {
 		GetComponent<SpriteRenderer>().sprite = curClass.charAnims.control.PlayAnim();
 
-		if (Input.GetKeyUp(KeyCode.LeftShift)) { UndoControl(); }
+		if (!Input.GetKey(KeyCode.LeftShift)) { UndoControl(); }
 	}
 
     // Swap the current class of the player
