@@ -75,11 +75,31 @@ public abstract class BasePlayer : Entity {
 			dungeon.PauseEnemies(false);
 		}
 	}
+
+	// Update iframes
+	protected void UpdateIFrames(float transparency) {
+		if (iframes > 0) {
+			// Handle iframe animation
+			if (subTimer.WaitForXFrames(iframes)) {
+				subTimer.ResetWait();
+				iframes = 0;
+				GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, transparency);
+			}
+			else {
+				if (subTimer.CurFrame() % 3 == 1) {
+					GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 0);
+				}
+				else {
+					GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 1);
+				}
+			}
+		}
+	}
 	#endregion
 
 	#region Core Portected Functions
-    // Handles the player's grounded options
-    protected void MoveGrounded() {
+	// Handles the player's grounded options
+	protected void MoveGrounded() {
 		// SWAP
 		if (Input.GetKeyDown(KeyCode.W)) {
 			AttemptSwap();
@@ -200,9 +220,10 @@ public abstract class BasePlayer : Entity {
 			GetComponent<SpriteRenderer>().sprite = b.parry.PlayAnim();
 			// Allow Sword to attack here
 
-
-			if (b.parry.isDone()) {
+            
+			if (subTimer.WaitForXFrames(b.parry.GetDuration())) {
 				timer.ResetWait();
+				subTimer.ResetWait();
 				b.parried = false;
 				ChangeState(State.GROUNDED);
 			}
@@ -242,11 +263,11 @@ public abstract class BasePlayer : Entity {
 					for (int i = 0; i < parried.Count; i++) {
 						parried[i].Parried();
 					}
-					if (parried.Count > 0) b.parried = true;
+					if (parried.Count > 0) { b.parried = true; }
 				}
 				
 				// Play block anims
-				if (timer.CurFrame() > b.maxBlock - b.stop.getDuration()) 
+				if (timer.CurFrame() > b.maxBlock - b.stop.GetDuration()) 
 					GetComponent<SpriteRenderer>().sprite = b.stop.PlayAnim();
 				else 
 				    GetComponent<SpriteRenderer>().sprite = b.block.PlayAnim();

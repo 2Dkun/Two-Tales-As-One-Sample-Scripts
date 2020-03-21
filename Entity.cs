@@ -84,6 +84,7 @@ public abstract class Entity : MonoBehaviour {
     }
 
     // TODO: CHECK TO MAKE SURE EVERYTHING WORKS
+    private List<Entity> foesHit;
     protected bool Attack(Attack a, Entity[] targets) {
         // Play attack anim
         gameObject.GetComponent<SpriteRenderer>().sprite = a.anim.PlayAnim();
@@ -109,7 +110,22 @@ public abstract class Entity : MonoBehaviour {
             }
         }
         // Otherwise check if the move connected during its active frames
+        // NEW IMPL: DAMAGE IS DONE AT THE LAST FRAME OF MOVE TO ALLOW FOR PARRIES TO NOT HIT GHOST
         else if (timer.CurFrame() >= a.startup && timer.CurFrame() <= a.GetLastFrame()) {
+            // Change states to signal parry duration and  update active hitbox
+            if (timer.CurFrame() == a.startup) {
+                activeHit = a.hitBox;
+                iframes = a.iframes;
+                if (a.isParry) curState = State.PARRY;
+                foesHit = new List<Entity>();
+            }
+            else if (timer.CurFrame() == a.GetLastFrame()) {
+                activeHit = null;
+                if (a.isParry) curState = State.ATTACK;
+                for (int i = 0; i < foesHit.Count; i++)
+                    foesHit[i].Attacked(curAttack.power);
+            }
+
             // Check if attack connected with any target if it has a hitbox
             if (!a.hitBox.IsEqual(new HitBox()) && !a.isParry) {
                 for (int i = 0; i < targets.Length; i++) {
@@ -120,8 +136,11 @@ public abstract class Entity : MonoBehaviour {
                             tarHurt, targets[i].gameObject);
                         // Tell the target that it has been attacked
                         if (isHit) {
+                            /*
                             targets[i].Attacked(curAttack.power);
                             Debug.Log("hit");
+                            */
+                            foesHit.Add(targets[i]);
                         }
                     }
                 }
@@ -133,17 +152,6 @@ public abstract class Entity : MonoBehaviour {
                 for (int i = 0; i < parried.Count; i++) {
                     parried[i].Parried();
                 }
-            }
-
-            // Change states to signal parry duration and  update active hitbox
-            if (timer.CurFrame() == a.startup) {
-                activeHit = a.hitBox;
-                iframes = a.iframes;
-                if(a.isParry) curState = State.PARRY;
-            }
-            else if (timer.CurFrame() == a.GetLastFrame()) {
-                activeHit = null;
-                if (a.isParry) curState = State.ATTACK;
             }
 
             // Move the player based on attack velocity
@@ -227,7 +235,7 @@ public abstract class Entity : MonoBehaviour {
                 damage *= 3;
             TakeDamage(damage);
 
-            if (curState == State.ATTACK || curState == State.SWAP)
+            if (curState == State.ATTACK || curState == State.SWAP || curState == State.STUNNED)
                 curState = prevState;
             if (curState != State.HURT)
                 ChangeState(State.HURT);
@@ -239,6 +247,7 @@ public abstract class Entity : MonoBehaviour {
 
     // Set the entity into parried state
     public void Parried() {
+        Debug.Log("Called");
         if (curAttack != null) {
             EndAttack();
         }

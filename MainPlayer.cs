@@ -35,7 +35,7 @@ public class MainPlayer : BasePlayer {
 	public override void ActFreely() {
 		UpdateSP();
 		UpdateMP();
-		UpdateIFrames();
+		UpdateIFrames(1);
 
 		// Control the spirit player
 		if (Input.GetKeyDown(KeyCode.LeftShift) && curState == State.GROUNDED) {
@@ -108,25 +108,7 @@ public class MainPlayer : BasePlayer {
 		}
 	}
 
-	// Update iframes
-	private void UpdateIFrames() {
-		if (iframes > 0) {
-			// Handle iframe animation
-			if (subTimer.WaitForXFrames(iframes)) { // 25 is arbitrary 
-				subTimer.ResetWait();
-				iframes = 0;
-				GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 1);
-			}
-			else {
-				if (subTimer.CurFrame() % 3 == 1) {
-					GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 0);
-				}
-				else {
-					GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, 1);
-				}
-			}
-		}
-	}
+
 
 	// Handles the player's state during hitstun
 	private void ApplyHitstun() {
