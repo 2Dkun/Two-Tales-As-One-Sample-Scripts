@@ -1,108 +1,170 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class BaseEnemy : Entity {
+public abstract class BaseEnemy : BaseEntity
+{
+    protected readonly Timer hurtTimer = new Timer();
+    
+    // Variables for pierce meter
+    protected readonly Timer pierceTimer = new Timer();
+    protected float pierceHP = 30;
+    protected float soulDrop = 34;
+    public bool IsPierced => pierceHP < 0;
 
-    [System.Serializable]
-    public class Anims {
-        public SpriteAnimator idle, walk, retreat, stunned;
-    }
+    // Other Variables
+    protected float detectRadius;
+    protected bool isHurt, playerDetected;
+    protected BasePlayer player => dungeon.GetActivePlayer();
+    protected LayerMask baseLayerMask;
 
-    // Base enemy data
-    [Header("Enemy Data")]
-    public string enemyName;
-    public EnemyHUDManager hud;
-    public Anims anims;
-    public Attack[] attacks;
-    public float moveSpd, moveDist;
-    //public float airAccel, airSpd, jumpHeight, gravity;
-    public float detectRad;
+    #region Virtual Functions
 
-    // Other data
-    protected Vector2 origin;
-    protected BasePlayer player;
+    protected virtual void HandleIdle() { }
+    protected virtual void HandleAttack() { Attack(dungeon.GetActivePlayer()); }
 
-    // Initialize data
-    protected new void Start() {
-        base.Start();
-        curState = State.PATROL;
-        origin = transform.localPosition;
-        player = dungeon.GetPlayer();
-        if (hud) {
-            hud.SetPosition(transform);
-            hud.InitText(enemyName, curHP);
-        }
-    }
-
-    // Apply any additional changes to when enemy is attacked
-    protected override void AttackedChanges() {
-        if (curHP <= 0) {
-            timer.ResetWait();
-            ChangeState(State.KO);
-        }
-        if (hud) { hud.UpdateHPBar(curHP, maxHP); }
-    }
-
-    // Apply any additional changes to when enemy is stunned
-    protected override void StunnedComplete() {
-        anims.stunned.ResetAnim();
-    }
-    protected override void StunnedChanges() {
-        GetComponent<SpriteRenderer>().sprite = anims.stunned.PlayAnim();
-    }
-
-    #region Abstract Functions
-    // Allow the entity to act freely
-    public abstract override void ActFreely();
-    // Handles AI for enemy when player is not detected
-    protected abstract void Patrol();
-    // Handles AI for enemy when player is detected
-    protected abstract void Agro();
-    #endregion
-
-    #region Protected Core Functions
-    // See if the player is nearby 
-    protected void DetectPlayer(bool isCircle) {
-        HitBox fov;
-        // Set hitbox for detection
-        if (isCircle)   fov = new HitBox(detectRad, detectRad, -detectRad, -detectRad);
-        else            fov = new HitBox(detectRad, 1, -detectRad, -1);
-        bool isHit = IsHitTarget(fov, gameObject, player.GetHurtBox(), player.gameObject);
-
-        if (isHit) {
-            ChangeState(State.GROUNDED);
-            timer.ResetWait();
-        }
-    }
-
-    // Remove the enemy gameObj upon death
-    protected void DestroyFoe() {
-        // Fade GameObject to nothing
+    protected virtual void HandleKo()
+    {
+        // play KO anim
+        // TODO: placeholder ko animation
         float curAlpha = GetComponent<SpriteRenderer>().color.a - Time.deltaTime;
-        GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, curAlpha);
-        if (hud) hud.SetAlpha(curAlpha);
-        if (curAlpha <= 0) {
+        if (curAlpha < 0)
+        {
+            curAlpha = 0;
+            dungeon.RemoveObstacle(this);
             Destroy(gameObject);
-            if (hud) Destroy(hud.gameObject);
+        }
+        GetComponent<SpriteRenderer>().color = new Color(1, 1, 1, curAlpha);
+        
+        box.enabled = false;
+    }
+
+    #endregion
+
+    protected new void Start()
+    {
+        base.Start();
+        baseLayerMask = layerMask;
+        UpdateLayerMask(LayerMask.NameToLayer("EnemyMovement"));
+    }
+
+    public override void UpdateEntity()
+    {
+        CheckHurt();
+        switch(curState){
+            case States.Idle:      HandleIdle(); break;
+            case States.Attack:    HandleAttack(); break;
+            case States.KO:        HandleKo(); break;
+            default: 			   print(gameObject.name + ": " + curState); break;
+        }
+        UpdatePierce();
+        //print(curState);
+    }
+
+    protected void DetectPlayer(bool isCircle)
+    {
+        Hitbox fov;
+        if (isCircle)   fov = new Hitbox(detectRadius, detectRadius, -detectRadius, -detectRadius);
+        else            fov = new Hitbox(detectRadius, 1, -detectRadius, -1);
+        playerDetected = IsHitTarget(fov, gameObject, player.GetHurtBox(), player.gameObject);
+    }
+    
+    protected bool RayCastPlayer(Vector2 direction, float distance)
+    {
+        Vector2 position = transform.position;
+        var offset = box.offset;
+        offset.x = Mathf.Abs(offset.x) * Mathf.Sign(direction.x);
+        position += offset;
+
+        RaycastHit2D p = Physics2D.Raycast(position, direction, distance, baseLayerMask);
+        Debug.DrawLine(position, position + (distance * direction), Color.magenta);
+        
+        return p && p.collider.CompareTag("Player");
+    }
+
+
+    public override void Attacked(float damage, Vector3 knockback, bool wasTipper)
+    {
+        if (!LinkAttacked(damage, knockback, wasTipper)) return;
+        dungeon.player.GetActivePlayer().GiveSoul(soulDrop);
+    }
+    
+    public bool LinkAttacked(float damage, Vector3 knockback, bool wasTipper) 
+    {
+        if (curState == States.KO || damage <= 0) return false;
+        
+        isHurt = true;
+        hurtTimer.ResetTimer();
+        
+        TakeDamage(damage);
+        if (wasTipper) pierceHP -= damage;
+        // Apply knockback data
+        shader.FlashWhite();
+        velocity = knockback;
+        if(curHP <= 0) ChangeState(States.KO);
+        
+        // TODO: dungeon.ApplyHitlag();
+        return true;
+    }
+    
+    #region Small Helper Functions
+
+    private void UpdatePierce()
+    {
+        if (IsPierced)
+        {
+            // temp value maybe dependent on enemy or constant
+            if (pierceTimer.WaitForXFrames(33)) 
+            {
+                // variable value for default pierce hp 
+                pierceHP = 30; 
+            }
         }
     }
 
-    // Handles the enemy's state during hitstun
-    protected void ApplyHitstun() {
-        // Return the previous state once out of hitstun
-        if (subTimer.WaitForXFrames(Constants.HURT_TIME)) { 
-            curState = prevState;
-        }
-        // Otherwise play hitstun animation
-        else {
-            if (subTimer.CurFrame() % 3 == 1) {
-                GetComponent<SpriteRenderer>().color = new Color(1, 0, 0);
-            }
-            else {
-                GetComponent<SpriteRenderer>().color = new Color(1, 1, 1);
-            }
+    // Applies knockback to the enemy if they've been hit
+    protected void CheckHurt()
+    {
+        if (!isHurt) return;
+        isHurt = !hurtTimer.WaitForXFrames(constants.hurtTime);
+        ApplyForce(new Vector2(100, 100));
+    }    
+
+    #endregion
+    
+    #region Simple Movement Functions
+
+    protected void FlipEnemy()
+    {
+        var curScale = Vector3.one * flipScale;
+        curScale.x *= Mathf.Sign(-transform.localScale.x);
+        transform.localScale = curScale;
+    }
+
+    protected void FlipEnemy(float direction)
+    {
+        var curScale = Vector3.one * flipScale;
+        curScale.x *= Mathf.Sign(direction);
+        transform.localScale = curScale;
+    }
+
+    protected void MoveToPoint(Vector2 target, float speed)
+    {
+        Vector2 curPos = transform.position;
+        Vector2 normal = (target - curPos).normalized;
+        Move(normal * (speed * Time.deltaTime));
+    }
+
+    #endregion
+
+    // Hurt the player if they came into contact with the enemy
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (curHP <= 0) return;
+        if (other.gameObject.CompareTag("Player"))
+        {
+            other.gameObject.GetComponent<BasePlayer>().Attacked(1, constants.hurtKnockback, false);
         }
     }
-    #endregion
 }

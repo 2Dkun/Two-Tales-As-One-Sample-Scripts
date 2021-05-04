@@ -3,119 +3,82 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-public class HitBox {
+public class Hitbox {
 
     // ---Fields---
-    public float xPos1, yPos1;
-    public float xPos2, yPos2;
-    int flipConstant;
-    float xShift, yShift;
+    public Vector2 pos1, pos2;
+    private int flipConstant;
+    private Vector2 shift;
 
     // ---Constructors---
-    public HitBox() {
-        this.flipConstant = 1;
-        this.xPos1 = 0; this.yPos1 = 0;
-        this.xPos2 = 0; this.yPos2 = 0;
+    public Hitbox() {
+        flipConstant = 1;
+        pos1 = Vector2.zero;
+        pos2 = Vector2.zero;
+        shift = Vector2.zero;
     }
-    public HitBox(float xPos1, float yPos1, float xPos2, float yPos2){
-		this.flipConstant = 1;
-        if (xPos1 >= xPos2)     { this.xPos1 = xPos1; this.xPos2 = xPos2; }
-        else                    { this.xPos1 = xPos2; this.xPos2 = xPos1; }
 
-        if (yPos1 >= yPos2)     { this.yPos1 = yPos1; this.yPos2 = yPos2; }
-        else                    { this.yPos1 = yPos2; this.yPos2 = yPos1; }
-        return;
+    public Hitbox(float xPos1, float yPos1, float xPos2, float yPos2) {
+        flipConstant = 1;
+        pos1.x = Mathf.Max(xPos1, xPos2);
+        pos1.y = Mathf.Max(yPos1, yPos2);
+        pos2.x = Mathf.Min(xPos1, xPos2);
+        pos2.y = Mathf.Min(yPos1, yPos2);
     }
+
+    public Hitbox(BoxCollider2D box, Vector2 scale)
+    {
+        var offset = box.offset;
+        var size = box.size;
+        pos1 = (offset + size * 0.5f) * scale;
+        pos2 = (offset - size * 0.5f) * scale;
+    }
+
+    // ---Public Functions---
+    public void UpdateBox(Vector2 shiftBox, int flip) {
+        flipConstant = flip;
+        shift = shiftBox;
+    }
+
+    public void ResetBox() {
+        flipConstant = 1;
+        shift = Vector2.zero;
+    }
+
+    public float GetWidth()  { return Mathf.Abs(pos1.x - pos2.x); }
+    public float GetHeight() { return Mathf.Abs(pos1.y - pos2.y); }
 
     // ---Access Functions---
-    public float getX1(){ 
-        return getMax((this.xPos1 * this.flipConstant) + this.xShift, (this.xPos2 * this.flipConstant) + this.xShift);
-    }
-    public float getY1(){ 
-        return getMax(this.yPos1 + this.yShift, this.yPos2 + this.yShift); 
-    }
-    public float getX2(){ 
-        return getMin((this.xPos1 * this.flipConstant) + this.xShift, (this.xPos2 * this.flipConstant) + this.xShift);
-    }
-    public float getY2(){ 
-        return getMin(this.yPos1 + this.yShift, this.yPos2 + this.yShift); 
-    }
+    
+    private float GetXMax() { return Mathf.Max(GetPointA().x, GetPointB().x); }
+    private float GetXMin() { return Mathf.Min(GetPointA().x, GetPointB().x); }
+    private float GetYMax() { return Mathf.Max(GetPointA().y, GetPointB().y); }
+    private float GetYMin() { return Mathf.Min(GetPointA().y, GetPointB().y); }
+    
+    public Vector2 GetPointA() { return pos1 * new Vector2(flipConstant, 1) + shift; }
+    public Vector2 GetPointB() { return pos2 * new Vector2(flipConstant, 1) + shift; }
+    
+    /*
+    private float GetXMax() { return Mathf.Max((pos1.x * flipConstant) + shift.x, (pos2.x * flipConstant) + shift.x); }
+    private float GetXMin() { return Mathf.Min((pos1.x * flipConstant) + shift.x, (pos2.x * flipConstant) + shift.x); }
 
-    public float getMax(float first, float second){
-        if (first >= second)
-            return first;
-        else
-            return second;
-    }
-    public float getMin(float first, float second){
-        if (first >= second)
-            return second;
-        else
-            return first;
-    }
-
-    // ---Manipulation Procedures---
-    public void flipBox(int flip){
-        this.flipConstant = flip;
-        return;
-    }
-
-    public void shiftBox(float xShift, float yShift){
-        this.xShift = xShift;
-        this.yShift = yShift;
-        return;
-    }
-
-    public void resetBox(){
-        this.flipConstant = 1;
-        this.xShift = 0;
-        this.yShift = 0;
-    }
-
+    private float GetYMax() { return Mathf.Max(pos1.y + shift.y, pos2.y + shift.y); }
+    private float GetYMin() { return Mathf.Min(pos1.y + shift.y, pos2.y + shift.y); }
+    */
+    
     // ---Other Functions---
-    public bool checkHit(HitBox h){
-        if (flipConstant > 0) {
-            Debug.DrawLine(new Vector2(getX1(), getY1()), new Vector2(getX2(), getY1()), Color.red);
-            Debug.DrawLine(new Vector2(getX1(), getY2()), new Vector2(getX2(), getY2()), Color.red);
-            Debug.DrawLine(new Vector2(getX1(), getY1()), new Vector2(getX1(), getY2()), Color.red);
-            Debug.DrawLine(new Vector2(getX2(), getY1()), new Vector2(getX2(), getY2()), Color.red);
-
-            Debug.DrawLine(new Vector2(h.getX1(), h.getY1()), new Vector2(h.getX2(), h.getY1()), Color.green);
-            Debug.DrawLine(new Vector2(h.getX1(), h.getY2()), new Vector2(h.getX2(), h.getY2()), Color.green);
-            Debug.DrawLine(new Vector2(h.getX1(), h.getY1()), new Vector2(h.getX1(), h.getY2()), Color.green);
-            Debug.DrawLine(new Vector2(h.getX2(), h.getY1()), new Vector2(h.getX2(), h.getY2()), Color.green);
-        }
-        else {
-			//Debug.Log(h.getX1() + ", " + h.getY1() + " || " + h.getX2() + ", " + h.getY2());
-			Debug.DrawLine(new Vector2(getX1(), getY1()), new Vector2(getX2(), getY1()), Color.red);
-            Debug.DrawLine(new Vector2(getX1(), getY2()), new Vector2(getX2(), getY2()), Color.red);
-            Debug.DrawLine(new Vector2(getX1(), getY1()), new Vector2(getX1(), getY2()), Color.red);
-            Debug.DrawLine(new Vector2(getX2(), getY1()), new Vector2(getX2(), getY2()), Color.red);
-
-            Debug.DrawLine(new Vector2(h.getX1(), h.getY1()), new Vector2(h.getX2(), h.getY1()), Color.green);
-            Debug.DrawLine(new Vector2(h.getX1(), h.getY2()), new Vector2(h.getX2(), h.getY2()), Color.green);
-            Debug.DrawLine(new Vector2(h.getX1(), h.getY1()), new Vector2(h.getX1(), h.getY2()), Color.green);
-            Debug.DrawLine(new Vector2(h.getX2(), h.getY1()), new Vector2(h.getX2(), h.getY2()), Color.green);
-        }
-
-        if (getY1() < h.getY2() || getY2() > h.getY1()) {
-            return false;
-        }
-        if (getX1() < h.getX2() || getX2() > h.getX1()) {
-            return false;
-        }
-
-        return true;
+    public bool CheckHitX(Hitbox h) { return !(GetXMax() < h.GetXMin() || GetXMin() > h.GetXMax()); }
+    public bool CheckHitY(Hitbox h) { return !(GetYMax() < h.GetYMin() || GetYMin() > h.GetYMax()); }
+    public bool CheckHit(Hitbox h) {
+        DrawBox(Color.green); h.DrawBox(Color.red);
+        return CheckHitX(h) && CheckHitY(h);
     }
-
-    public void Clone(HitBox c){
-        this.xPos1 = c.xPos1; this.yPos1 = c.yPos1;
-        this.xPos2 = c.xPos2; this.yPos2 = c.yPos2;
+    
+    public void DrawBox(Color c) {
+        Debug.DrawLine(new Vector2(GetXMax(), GetYMax()), new Vector2(GetXMin(), GetYMax()), c);
+        Debug.DrawLine(new Vector2(GetXMax(), GetYMin()), new Vector2(GetXMin(), GetYMin()), c);
+        Debug.DrawLine(new Vector2(GetXMax(), GetYMax()), new Vector2(GetXMax(), GetYMin()), c);
+        Debug.DrawLine(new Vector2(GetXMin(), GetYMax()), new Vector2(GetXMin(), GetYMin()), c);
     }
-
-    public bool IsEqual(HitBox h) {
-        return this.xPos1 == h.xPos1 && this.yPos1 == h.yPos1 
-            && this.xPos2 == h.xPos2 && this.yPos2 == h.yPos2;
-    }
-
+    
 }
